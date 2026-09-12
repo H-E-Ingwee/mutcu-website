@@ -89,7 +89,11 @@ export default function ContactPage() {
               <div className="mt-8">
                 <h4 className="font-montserrat font-bold text-navy text-sm mb-3">Follow Us</h4>
                 <div className="flex gap-3">
-                  
+                  {[
+                    { url: 'https://facebook.com', icon: 'fab fa-facebook-f' },
+                    { url: 'https://instagram.com', icon: 'fab fa-instagram' },
+                    { url: 'https://youtube.com', icon: 'fab fa-youtube' },
+                  ].map((s, i) => (
                     <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
                       className="w-10 h-10 rounded-xl bg-navy flex items-center justify-center text-white hover:bg-orange transition-colors">
                       <i className={s.icon} />
