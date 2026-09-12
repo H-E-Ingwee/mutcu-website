@@ -11,20 +11,38 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
+// Build allowed origins list — always include Vercel preview URLs
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
+  process.env.FRONTEND_URL,
   'https://mutcu.org',
   'https://www.mutcu.org',
+  'https://mutcuweb.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
-];
+].filter(Boolean);
+
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return cb(null, true);
+    // Allow exact matches
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    // Allow any *.vercel.app subdomain (Vercel preview deployments)
+    if (origin.endsWith('.vercel.app')) return cb(null, true);
+    // Allow any *.onrender.com (Render preview)
+    if (origin.endsWith('.onrender.com')) return cb(null, true);
+    // Allow localhost on any port
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return cb(null, true);
+    console.warn('[CORS] Blocked origin:', origin);
     cb(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
+
+// Handle preflight OPTIONS requests explicitly
+app.options('*', cors());
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: 'Too many requests' }));
