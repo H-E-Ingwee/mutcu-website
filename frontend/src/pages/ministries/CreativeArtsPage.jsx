@@ -223,7 +223,7 @@ export default function CreativeArtsPage() {
                   <option value="drama" className="text-navy">Drama Ministry</option>
                   <option value="dance" className="text-navy">Dance Ministry</option>
                   <option value="spoken-word" className="text-navy">Spoken Word & Poetry</option>
-                  <option value="modelling" className="text-navy">Modelling & Fine Arts</option>
+                  <option value="modelling" className="text-navy">Modelling </option>
                   <option value="general" className="text-navy">General Interest</option>
                 </select>
               </div>
