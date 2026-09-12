@@ -131,20 +131,7 @@ export default function AIMinistryMatcher() {
     }
   }
 
-  const submitQuiz = async (finalAnswers) => {
-    setStep(QUESTIONS.length + 1) // loading
-    setLoading(true)
-    try {
-      const res = await api.post('/ai/ministry-match', finalAnswers)
-      setResult(res.match)
-      setStep(QUESTIONS.length + 2) // result
-    } catch (err) {
-      toast.error('Failed to get recommendation. Please try again.')
-      setStep(QUESTIONS.length)
-    } finally {
-      setLoading(false)
-    }
-  }
+  
 
   const reset = () => {
     setStep(0)
@@ -187,10 +174,7 @@ export default function AIMinistryMatcher() {
 
   // Result
   if (step === QUESTIONS.length + 2 && result) {
-    const primaryLink = Object.entries(MINISTRY_LINKS).find(([k]) => result.primary?.includes(k.split(' ')[0]))?.[1] || '/ministries'
-    const secondaryLink = Object.entries(MINISTRY_LINKS).find(([k]) => result.secondary?.includes(k.split(' ')[0]))?.[1] || '/ministries'
-    const primaryIcon = Object.entries(MINISTRY_ICONS).find(([k]) => result.primary?.includes(k.split(' ')[0]))?.[1] || 'fa-star'
-    const secondaryIcon = Object.entries(MINISTRY_ICONS).find(([k]) => result.secondary?.includes(k.split(' ')[0]))?.[1] || 'fa-star'
+    
 
     return (
       <div>

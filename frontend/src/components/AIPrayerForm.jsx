@@ -46,7 +46,7 @@ export default function AIPrayerForm({ compact = false }) {
           </div>
           <div>
             <p className="font-montserrat font-bold text-white text-sm">Submitting your prayer request...</p>
-            <p className="text-white/50 text-xs mt-1">Our AI is preparing a word of encouragement for you</p>
+            <p className="text-white/50 text-xs mt-1">Preparing a word of encouragement for you...</p>
           </div>
         </div>
       </div>

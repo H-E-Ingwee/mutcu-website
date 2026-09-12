@@ -22,16 +22,23 @@ router.post('/', async (req, res) => {
     // Notify admin (fire and forget)
     sendPrayerNotification({ name: name || 'Anonymous', request: request.trim() }).catch(() => {});
 
-    // Generate AI encouragement (non-blocking)
+    // Generate encouragement — with timeout to avoid slow responses
     let encouragement = null
     try {
-      encouragement = await generatePrayerEncouragement(request.trim(), name?.trim())
-    } catch {}
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+      const aiPromise = generatePrayerEncouragement(request.trim(), name?.trim())
+      encouragement = await Promise.race([aiPromise, timeoutPromise])
+    } catch (aiErr) {
+      console.log('[PRAYER] Encouragement generation skipped:', aiErr.message)
+    }
+
+    const fallbackEncouragement = "Thank you for sharing your heart with us. Our Prayer Ministry will be interceding for you. \"Cast all your anxiety on him because he cares for you.\" (1 Peter 5:7). May God's peace, which surpasses all understanding, guard your heart and mind in Christ Jesus. Amen."
 
     res.status(201).json({
       message: 'Prayer request submitted. Our Prayer Ministry will intercede for you.',
       id: data.id,
-      encouragement: encouragement || "Thank you for sharing your heart with us. Our Prayer Ministry will be interceding for you. \"Cast all your anxiety on him because he cares for you.\" (1 Peter 5:7). May God's peace guard your heart and mind in Christ Jesus.",
+      encouragement: encouragement || fallbackEncouragement,
+      fallback: !encouragement,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
