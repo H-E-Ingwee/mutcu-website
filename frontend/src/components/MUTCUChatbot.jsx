@@ -12,10 +12,7 @@ const SUGGESTED_QUESTIONS = [
   'What is MUTCU\'s motto?',
 ]
 
-const WELCOME_MESSAGE = {
-  role: 'assistant',
-  content: "Hello! 👋 I'm the MUTCU AI Assistant. I'm here to help you learn about Murang'a University of Technology Christian Union — our ministries, events, membership, and more.\n\nHow can I help you today?",
-}
+
 
 function MessageBubble({ message, isLast }) {
   const isUser = message.role === 'user'
@@ -31,12 +28,7 @@ function MessageBubble({ message, isLast }) {
       {/* Bubble */}
       <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser ? 'bg-orange text-white rounded-tr-sm' : 'bg-gray-100 text-navy rounded-tl-sm'}`}>
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-        {message.provider && !isUser && (
-          <p className="text-xs mt-1 opacity-40 flex items-center gap-1">
-            <i className="fas fa-robot text-xs" />
-            {message.provider === 'groq' ? 'Llama 3.3 via Groq' : 'Gemini AI'}
-          </p>
-        )}
+        
       </div>
     </div>
   )
@@ -142,13 +134,7 @@ export default function MUTCUChatbot() {
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-navy" />
               </div>
-              <div>
-                <div className="font-montserrat font-bold text-white text-sm">MUTCU AI Assistant</div>
-                <div className="text-white/40 text-xs flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                  Online · Powered by Groq + Gemini
-                </div>
-              </div>
+              
             </div>
             <div className="flex items-center gap-1">
               <button onClick={clearChat} title="Clear chat"
@@ -237,13 +223,7 @@ export default function MUTCUChatbot() {
       </button>
 
       {/* Tooltip on first load */}
-      {!open && (
-        <div className="fixed bottom-24 right-4 sm:right-6 z-40 bg-navy text-white text-xs px-3 py-2 rounded-xl shadow-lg pointer-events-none"
-          style={{ animation: 'fadeInOut 4s ease-in-out forwards' }}>
-          <div className="flex items-center gap-2">
-            <i className="fas fa-robot text-orange text-xs" />
-            Ask me about MUTCU!
-          </div>
+      
           <div className="absolute bottom-0 right-5 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-navy" />
         </div>
       )}

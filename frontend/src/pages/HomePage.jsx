@@ -358,21 +358,7 @@ export default function HomePage() {
                 Our Prayer Ministry is here to support you in faith and intercession. Submit your request confidentially —
                 our team will pray for you.
               </p>
-              <div className="space-y-3 mb-6">
-                {['Your request is kept confidential', 'Our Prayer Ministry intercedes for you', 'You may submit anonymously', 'Receive an AI-generated scripture encouragement instantly'].map(item => (
-                  <div key={item} className="flex items-center gap-3 text-white/70 text-sm">
-                    <i className="fas fa-check-circle text-teal" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <i className="fas fa-robot text-orange text-sm" />
-                  <span className="font-montserrat font-bold text-white text-sm">AI-Powered Encouragement</span>
-                </div>
-                <p className="text-white/50 text-xs leading-relaxed">After submitting your prayer request, our AI generates a personalized scripture-based word of encouragement just for you — powered by Google Gemini.</p>
-              </div>
+              
             </div>
             <div data-aos="fade-left">
               <div className="bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm overflow-hidden">
@@ -429,8 +415,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── Newsletter ───────────────────────────────────────────────────────── */}
-      <section className="py-20" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
+      
         <div className="max-w-2xl mx-auto px-4 text-center" data-aos="fade-up">
           <i className="fas fa-envelope-open-text text-white text-5xl mb-4 block" />
           <h2 className="font-montserrat font-black text-white text-3xl md:text-4xl mb-3">Stay Connected</h2>

@@ -65,20 +65,7 @@ export default function AIPrayerForm({ compact = false }) {
           <p className="text-white/60 text-sm">Our Prayer Ministry will intercede for you.</p>
         </div>
 
-        {/* AI Encouragement */}
-        <div className="bg-white/10 border border-white/20 rounded-2xl p-5 mb-5">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 rounded-full bg-orange/20 flex items-center justify-center flex-shrink-0">
-              <i className="fas fa-star text-orange text-xs" />
-            </div>
-            <span className="font-montserrat font-bold text-orange text-xs uppercase tracking-wider">
-              {isFallback ? 'A Word of Encouragement' : 'AI-Generated Encouragement'}
-            </span>
-          </div>
-          <p className="text-white/85 text-sm leading-relaxed italic">
-            {encouragement}
-          </p>
-        </div>
+        
 
         <div className="flex flex-col sm:flex-row gap-3">
           <button onClick={reset} className="btn-outline-white flex-1 justify-center btn-sm">
@@ -122,11 +109,7 @@ export default function AIPrayerForm({ compact = false }) {
       <button type="submit" className="btn-primary w-full justify-center">
         <i className="fas fa-paper-plane" /> Submit Request
       </button>
-      <p className="text-white/30 text-xs text-center flex items-center justify-center gap-1">
-        <i className="fas fa-lock text-xs" /> Your request is kept confidential
-        <span className="mx-1">·</span>
-        <i className="fas fa-robot text-xs" /> AI encouragement powered by Gemini
-      </p>
+      
     </form>
   )
 }

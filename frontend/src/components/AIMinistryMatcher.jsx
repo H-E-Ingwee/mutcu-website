@@ -163,13 +163,7 @@ export default function AIMinistryMatcher() {
         <p className="text-gray-500 leading-relaxed mb-6 max-w-md mx-auto">
           Answer 5 quick questions and our AI will recommend the MUTCU ministry that best matches your gifts, passion, and personality.
         </p>
-        <div className="flex flex-wrap justify-center gap-2 mb-6 text-xs text-gray-400">
-          <span className="flex items-center gap-1"><i className="fas fa-clock text-orange" /> 2 minutes</span>
-          <span>·</span>
-          <span className="flex items-center gap-1"><i className="fas fa-robot text-orange" /> Powered by Gemini AI</span>
-          <span>·</span>
-          <span className="flex items-center gap-1"><i className="fas fa-check text-orange" /> 5 questions</span>
-        </div>
+        
         <button onClick={() => setStep(1)} className="btn-primary btn-lg mx-auto">
           <i className="fas fa-play" /> Start the Quiz
         </button>
@@ -200,13 +194,7 @@ export default function AIMinistryMatcher() {
 
     return (
       <div>
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-orange/10 flex items-center justify-center mx-auto mb-3">
-            <i className="fas fa-check-circle text-orange text-3xl" />
-          </div>
-          <h3 className="font-montserrat font-black text-navy text-2xl mb-1">Your Ministry Match!</h3>
-          <p className="text-gray-400 text-sm">Based on your gifts, passion, and personality</p>
-        </div>
+        
 
         {/* Primary Match */}
         <div className="bg-navy rounded-2xl p-6 mb-4" data-aos="zoom-in">
@@ -263,9 +251,7 @@ export default function AIMinistryMatcher() {
           </Link>
         </div>
 
-        <p className="text-gray-300 text-xs text-center mt-3 flex items-center justify-center gap-1">
-          <i className="fas fa-robot text-xs" /> Recommendation powered by Gemini AI
-        </p>
+        
       </div>
     )
   }

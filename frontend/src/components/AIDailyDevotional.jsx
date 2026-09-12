@@ -66,11 +66,7 @@ export default function AIDailyDevotional({ compact = false }) {
             <div className="text-orange text-xs font-montserrat font-bold uppercase tracking-wider">Daily Devotional</div>
             <div className="text-white/40 text-xs">{today}</div>
           </div>
-          <div className="ml-auto">
-            <span className="text-white/20 text-xs flex items-center gap-1">
-              <i className="fas fa-robot text-xs" /> AI
-            </span>
-          </div>
+          
         </div>
         <h4 className="font-montserrat font-bold text-white text-base mb-2">{devotional.title}</h4>
         <div className="bg-orange/10 border border-orange/20 rounded-xl p-3 mb-3">
@@ -112,10 +108,7 @@ export default function AIDailyDevotional({ compact = false }) {
             <div className="text-white/40 text-xs">{today}</div>
           </div>
         </div>
-        <div className="flex items-center gap-1 text-white/30 text-xs">
-          <i className="fas fa-robot text-xs" />
-          <span>Powered by Gemini AI</span>
-        </div>
+        
       </div>
 
       {/* Content */}
