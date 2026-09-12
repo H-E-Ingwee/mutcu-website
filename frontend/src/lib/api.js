@@ -134,6 +134,14 @@ export const ministriesAPI = {
   delete: (id) => api.delete(`/ministries/${id}`),
 }
 
+export const aiAPI = {
+  getPrayerEncouragement: (request, name) => api.post('/ai/prayer-encouragement', { request, name }),
+  getDailyDevotional: () => api.get('/ai/devotional'),
+  generateBlogDraft: (title, topic, tone) => api.post('/ai/blog-draft', { title, topic, tone }),
+  getMinistryMatch: (answers) => api.post('/ai/ministry-match', answers),
+  getStatus: () => api.get('/ai/status'),
+}
+
 export const adminAPI = {
   login: (email, password) => api.post('/admin/login', { email, password }),
   me: () => api.get('/admin/me'),

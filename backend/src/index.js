@@ -73,6 +73,7 @@ app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/ministries', require('./routes/ministries'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/ai', require('./routes/ai'));
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));

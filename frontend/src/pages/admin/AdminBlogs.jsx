@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { blogsAPI } from '../../lib/api'
 import RichTextEditor from '../../components/RichTextEditor'
+import AIBlogAssistant from '../../components/AIBlogAssistant'
 import toast from 'react-hot-toast'
 import { Plus, Edit2, Trash2, X, Check, Eye, EyeOff, FileText, Clock } from 'lucide-react'
 
@@ -243,10 +244,7 @@ export default function AdminBlogs() {
                       placeholder="faith, devotional, prayer, testimony" />
                   </div>
 
-                  {/* Rich Text Editor */}
-                  <div>
-                    <label className="form-label">Content <span className="text-orange">*</span></label>
-                    <RichTextEditor
+                  
                       value={form.content}
                       onChange={content => setForm(f => ({ ...f, content }))}
                       placeholder="Write your blog post here... Use the toolbar above to format your content."

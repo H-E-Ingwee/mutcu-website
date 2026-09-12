@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { eventsAPI, prayerAPI, newsletterAPI } from '../lib/api'
+import { eventsAPI, newsletterAPI } from '../lib/api'
 import SectionTitle from '../components/SectionTitle'
 import LoadingSpinner from '../components/LoadingSpinner'
 import SEO from '../components/SEO'
+import AIPrayerForm from '../components/AIPrayerForm'
+import AIDailyDevotional from '../components/AIDailyDevotional'
+import AIMinistryMatcher from '../components/AIMinistryMatcher'
 import toast from 'react-hot-toast'
 
 const HERO_SLIDES = [
@@ -79,9 +82,7 @@ export default function HomePage() {
   const [events, setEvents] = useState([])
   const [eventsLoading, setEventsLoading] = useState(true)
   const [testimonialIdx, setTestimonialIdx] = useState(0)
-  const [prayerName, setPrayerName] = useState('')
-  const [prayerRequest, setPrayerRequest] = useState('')
-  const [prayerSubmitting, setPrayerSubmitting] = useState(false)
+  // Prayer form now handled by AIPrayerForm component
   const [newsletterEmail, setNewsletterEmail] = useState('')
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false)
 
@@ -105,17 +106,7 @@ export default function HomePage() {
       .finally(() => setEventsLoading(false))
   }, [])
 
-  const handlePrayerSubmit = async (e) => {
-    e.preventDefault()
-    if (!prayerRequest.trim()) return toast.error('Please enter your prayer request')
-    setPrayerSubmitting(true)
-    try {
-      await prayerAPI.submit({ name: prayerName || undefined, request: prayerRequest, is_public: false })
-      toast.success('Prayer request submitted! Our Prayer Ministry will intercede for you.')
-      setPrayerName(''); setPrayerRequest('')
-    } catch (err) { toast.error(err.message || 'Submission failed') }
-    finally { setPrayerSubmitting(false) }
-  }
+  
 
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault()
@@ -353,7 +344,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── Prayer Request ───────────────────────────────────────────────────── */}
+      {/* ─── Prayer Request — AI Enhanced ────────────────────────────────────── */}
       <section className="py-20" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -367,35 +358,26 @@ export default function HomePage() {
                 Our Prayer Ministry is here to support you in faith and intercession. Submit your request confidentially —
                 our team will pray for you.
               </p>
-              <div className="space-y-3">
-                {['Your request is kept confidential', 'Our Prayer Ministry intercedes for you', 'You may submit anonymously'].map(item => (
+              <div className="space-y-3 mb-6">
+                {['Your request is kept confidential', 'Our Prayer Ministry intercedes for you', 'You may submit anonymously', 'Receive an AI-generated scripture encouragement instantly'].map(item => (
                   <div key={item} className="flex items-center gap-3 text-white/70 text-sm">
                     <i className="fas fa-check-circle text-teal" />
                     {item}
                   </div>
                 ))}
               </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <i className="fas fa-robot text-orange text-sm" />
+                  <span className="font-montserrat font-bold text-white text-sm">AI-Powered Encouragement</span>
+                </div>
+                <p className="text-white/50 text-xs leading-relaxed">After submitting your prayer request, our AI generates a personalized scripture-based word of encouragement just for you — powered by Google Gemini.</p>
+              </div>
             </div>
             <div data-aos="fade-left">
-              <form onSubmit={handlePrayerSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
-                <h3 className="font-montserrat font-bold text-white text-xl mb-5">Submit a Prayer Request</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="form-label text-white/80">Your Name (Optional)</label>
-                    <input type="text" className="form-input bg-white/10 border-white/20 text-white placeholder-white/40"
-                      placeholder="Enter your name" value={prayerName} onChange={e => setPrayerName(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="form-label text-white/80">Prayer Request <span className="text-orange">*</span></label>
-                    <textarea className="form-textarea bg-white/10 border-white/20 text-white placeholder-white/40" rows={5}
-                      placeholder="Share your prayer request here..." required
-                      value={prayerRequest} onChange={e => setPrayerRequest(e.target.value)} />
-                  </div>
-                  <button type="submit" disabled={prayerSubmitting} className="btn-primary w-full justify-center">
-                    {prayerSubmitting ? <><i className="fas fa-spinner fa-spin" /> Submitting...</> : <><i className="fas fa-paper-plane" /> Submit Request</>}
-                  </button>
-                </div>
-              </form>
+              <div className="bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm overflow-hidden">
+                <AIPrayerForm />
+              </div>
             </div>
           </div>
         </div>
@@ -447,8 +429,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── Newsletter ───────────────────────────────────────────────────────── */}
-      <section className="py-20 bg-orange">
+      
         <div className="max-w-2xl mx-auto px-4 text-center" data-aos="fade-up">
           <i className="fas fa-envelope-open-text text-white text-5xl mb-4 block" />
           <h2 className="font-montserrat font-black text-white text-3xl md:text-4xl mb-3">Stay Connected</h2>

@@ -3,6 +3,7 @@ const router = express.Router();
 const supabase = require('../lib/supabase');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { sendPrayerNotification } = require('../lib/email');
+const { generatePrayerEncouragement } = require('../lib/gemini');
 
 // POST /api/prayer — submit prayer request (public)
 router.post('/', async (req, res) => {
@@ -21,7 +22,17 @@ router.post('/', async (req, res) => {
     // Notify admin (fire and forget)
     sendPrayerNotification({ name: name || 'Anonymous', request: request.trim() }).catch(() => {});
 
-    res.status(201).json({ message: 'Prayer request submitted. Our Prayer Ministry will intercede for you.', id: data.id });
+    // Generate AI encouragement (non-blocking)
+    let encouragement = null
+    try {
+      encouragement = await generatePrayerEncouragement(request.trim(), name?.trim())
+    } catch {}
+
+    res.status(201).json({
+      message: 'Prayer request submitted. Our Prayer Ministry will intercede for you.',
+      id: data.id,
+      encouragement: encouragement || "Thank you for sharing your heart with us. Our Prayer Ministry will be interceding for you. \"Cast all your anxiety on him because he cares for you.\" (1 Peter 5:7). May God's peace guard your heart and mind in Christ Jesus.",
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
