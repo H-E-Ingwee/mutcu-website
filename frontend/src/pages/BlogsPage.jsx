@@ -24,7 +24,8 @@ export default function BlogsPage() {
 
   return (
     <div>
-      
+      <PageHero
+        title="Blog & Devotionals"
         subtitle="Spiritual insights, testimonies, and reflections from the MUTCU community."
         image="/assets/images/bs1.jpg"
         badge="MUTCU Blog"

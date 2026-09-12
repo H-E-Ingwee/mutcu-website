@@ -11,6 +11,11 @@ const ACTIVITIES = [
 ]
 
 
+export default function BibleStudyPage() {
+  return (
+    <>
+      <SEO title="Bible Study & Training Ministry" />
+      <MinistryPage
       slug="bible-study"
       heroImage="/assets/images/bs1.jpg"
       title="Bible Study & Training Ministry"

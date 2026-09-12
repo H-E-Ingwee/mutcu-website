@@ -46,7 +46,8 @@ export default function ContactPage() {
 
   return (
     <div>
-      
+      <PageHero
+        title="Contact Us"
         subtitle="We'd love to hear from you. Reach out with any questions, prayer requests, or partnership inquiries."
         image="/assets/images/church2.jpg"
         badge="Get In Touch"

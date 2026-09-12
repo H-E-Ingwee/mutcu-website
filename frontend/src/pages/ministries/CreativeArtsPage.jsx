@@ -77,7 +77,9 @@ export default function CreativeArtsPage() {
     toast.success('Thank you for your interest in CREAM! We will be in touch soon.')
   }
 
-  
+  return (
+    <>
+      <section className="relative overflow-hidden" style={{ backgroundImage: "url('/assets/images/dance3.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(4,0,61,0.88) 0%, rgba(4,0,61,0.65) 100%)' }} />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange/20 border border-orange/30 text-orange text-xs font-montserrat font-bold uppercase tracking-widest mb-4">
@@ -238,7 +240,6 @@ export default function CreativeArtsPage() {
           )}
         </div>
       </section>
-    </div>
     </>
   )
 }

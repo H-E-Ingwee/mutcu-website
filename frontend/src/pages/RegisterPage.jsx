@@ -6,7 +6,8 @@ import SectionTitle from '../components/SectionTitle'
 export default function RegisterPage() {
   return (
     <div>
-      
+      <PageHero
+        title="Join MUTCU"
         subtitle="Become part of a Christ-centred family committed to discipleship, fellowship, and service."
         image="/assets/images/church2.jpg"
         badge="Membership Registration"

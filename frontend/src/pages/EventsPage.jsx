@@ -142,7 +142,8 @@ export default function EventsPage() {
 
   return (
     <div>
-      
+      <PageHero
+        title="Events & Programs"
         subtitle="September – December 2026 Semester Program. Sunday services, Friday fellowships, and special activities."
         image="/assets/images/church2.jpg"
         badge="Semester 2 · 2026"

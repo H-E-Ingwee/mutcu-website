@@ -41,7 +41,8 @@ export default function MinistriesPage() {
 
   return (
     <div>
-      
+      <PageHero
+        title="Our Ministries"
         subtitle="Find your place to grow and to serve — each ministry exists to build believers and reach others for Christ."
         image="/assets/images/church2.jpg"
         badge="MUTCU Ministries"

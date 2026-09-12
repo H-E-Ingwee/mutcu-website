@@ -120,7 +120,8 @@ export default function ResourcesPage() {
 
   return (
     <div>
-      
+      <PageHero
+        title="Spiritual Resources"
         subtitle="Equipping the saints with sermons, devotionals, videos, and study materials to foster growth in Christ."
         image="/assets/images/bs1.jpg"
         badge="Library & Media"
