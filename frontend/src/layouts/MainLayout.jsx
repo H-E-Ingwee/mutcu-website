@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import MUTCUChatbot from '../components/MUTCUChatbot'
 import { useAOS } from '../hooks/useAOS'
 
 export default function MainLayout() {
@@ -19,6 +20,7 @@ export default function MainLayout() {
         <Outlet />
       </main>
       <Footer />
+      <MUTCUChatbot />
     </div>
   )
 }
