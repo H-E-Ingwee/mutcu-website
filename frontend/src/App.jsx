@@ -14,6 +14,7 @@ import GalleryPage from './pages/GalleryPage'
 import ResourcesPage from './pages/ResourcesPage'
 import ContactPage from './pages/ContactPage'
 import RegisterPage from './pages/RegisterPage'
+import SermonArchivePage from './pages/SermonArchivePage'
 
 // Ministry Pages
 import MusicMinistryPage from './pages/ministries/MusicMinistryPage'
@@ -101,6 +102,7 @@ export default function App() {
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="sermons" element={<SermonArchivePage />} />
 
           {/* Ministry Detail Pages */}
           <Route path="ministries/music-ministry" element={<MusicMinistryPage />} />

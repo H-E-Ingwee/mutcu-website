@@ -4,8 +4,13 @@ import { leadershipAPI } from '../lib/api'
 import PageHero from './PageHero'
 import SectionTitle from './SectionTitle'
 import LoadingSpinner from './LoadingSpinner'
+import SEO from './SEO'
 
-export default function CommitteePage({ roleSlug, fallback, heroImage, officeTitle, officeSubtitle, responsibilities, description, additionalSections }) {
+export default function CommitteePage({
+  roleSlug, fallback, heroImage, officeTitle, officeSubtitle,
+  responsibilities, description, constitutionRef, leadershipManualRef,
+  additionalSections, seoTitle, seoDescription
+}) {
   const [leader, setLeader] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -19,19 +24,27 @@ export default function CommitteePage({ roleSlug, fallback, heroImage, officeTit
   const person = leader || fallback
 
   return (
-    <div>
+    <>
+      <SEO
+        title={seoTitle || `${officeTitle} | MUTCU Executive Council`}
+        description={seoDescription || `Learn about the ${officeTitle} of Murang'a University of Technology Christian Union — roles, responsibilities, and constitutional duties.`}
+        url={`/committees/${roleSlug}`}
+        keywords={`MUTCU ${officeTitle}, MUTCU Executive Council, Murang'a University Christian Union leadership`}
+      />
+
       <PageHero
         title={officeTitle}
         subtitle={officeSubtitle}
         image={person?.photo_url || heroImage}
-        badge="Executive Committee"
+        badge="Executive Council · MUTCU"
       />
 
-      {/* Leader Profile */}
+      {/* ─── Leader Profile ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {loading ? <LoadingSpinner text="Loading..." /> : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+
               {/* Photo Card */}
               <div className="text-center" data-aos="zoom-in">
                 <div className="relative inline-block">
@@ -41,26 +54,41 @@ export default function CommitteePage({ roleSlug, fallback, heroImage, officeTit
                     className="w-56 h-56 rounded-2xl object-cover shadow-2xl border-4 border-orange mx-auto"
                     onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(person?.name || 'Leader')}&background=04003D&color=FF9700&size=400&bold=true` }}
                   />
-                  <div className="absolute -bottom-3 -right-3 bg-orange rounded-xl px-3 py-1.5 shadow-lg">
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-orange rounded-xl px-4 py-1.5 shadow-lg whitespace-nowrap">
                     <span className="text-white text-xs font-montserrat font-bold">EC {new Date().getFullYear()}</span>
                   </div>
                 </div>
-                <h3 className="font-montserrat font-black text-navy text-xl mt-6 mb-1">{person?.name || 'To be announced'}</h3>
-                <p className="text-orange font-bold text-sm uppercase tracking-wider mb-4">{person?.role || officeTitle}</p>
+                <h3 className="font-montserrat font-black text-navy text-xl mt-8 mb-1">{person?.name || 'To be announced'}</h3>
+                <p className="text-orange font-bold text-sm uppercase tracking-wider mb-1">{person?.role || officeTitle}</p>
                 {person?.email && (
-                  <a href={`mailto:${person.email}`} className="text-teal text-sm hover:underline flex items-center justify-center gap-2">
-                    <i className="fas fa-envelope" />{person.email}
+                  <a href={`mailto:${person.email}`} className="text-teal text-sm hover:underline flex items-center justify-center gap-2 mt-1">
+                    <i className="fas fa-envelope text-xs" />{person.email}
                   </a>
                 )}
-                <div className="mt-6 flex flex-col gap-2">
-                  <Link to="/about" className="btn-outline btn-sm justify-center">← Back to About</Link>
+
+                {/* Constitution reference */}
+                {constitutionRef && (
+                  <div className="mt-5 bg-navy/5 rounded-xl p-3 text-xs text-gray-500 text-left">
+                    <i className="fas fa-book text-orange mr-1" />
+                    <strong>Constitution:</strong> {constitutionRef}
+                  </div>
+                )}
+                {leadershipManualRef && (
+                  <div className="mt-2 bg-teal/5 rounded-xl p-3 text-xs text-gray-500 text-left">
+                    <i className="fas fa-book-open text-teal mr-1" />
+                    <strong>Leadership Manual:</strong> {leadershipManualRef}
+                  </div>
+                )}
+
+                <div className="mt-5 flex flex-col gap-2">
+                  <Link to="/about#ec" className="btn-outline btn-sm justify-center">← Back to Leadership</Link>
                   <a href="https://portal.mutcu.org" target="_blank" rel="noopener noreferrer" className="btn-primary btn-sm justify-center">
                     <i className="fas fa-user-circle" /> Member Portal
                   </a>
                 </div>
               </div>
 
-              {/* Bio & Personal Message */}
+              {/* Bio & Description */}
               <div className="lg:col-span-2" data-aos="fade-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange/10 text-orange text-xs font-montserrat font-bold uppercase tracking-wider mb-4">
                   <i className="fas fa-user-tie" /> About the Office
@@ -72,9 +100,9 @@ export default function CommitteePage({ roleSlug, fallback, heroImage, officeTit
                   <p key={i} className="text-gray-600 leading-relaxed mb-4">{para}</p>
                 ))}
 
-                {/* Personal message from leader */}
+                {/* Personal message */}
                 {person?.personal_message && (
-                  <div className="bg-navy/5 border-l-4 border-orange rounded-r-2xl p-5 mt-6">
+                  <div className="bg-navy/5 border-l-4 border-orange rounded-r-2xl p-5 mt-5">
                     <div className="flex items-center gap-2 mb-3">
                       <i className="fas fa-quote-left text-orange" />
                       <span className="font-montserrat font-bold text-navy text-sm">A Word from {person.name?.split(' ')[0]}</span>
@@ -98,15 +126,18 @@ export default function CommitteePage({ roleSlug, fallback, heroImage, officeTit
         </div>
       </section>
 
-      {/* Responsibilities */}
+      {/* ─── Responsibilities ────────────────────────────────────────────────── */}
       {responsibilities && responsibilities.length > 0 && (
         <section className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <SectionTitle title="Key Roles & Responsibilities" subtitle={`The ${officeTitle} is central to MUTCU's governance and spiritual guidance.`} />
+            <SectionTitle
+              title="Key Roles & Responsibilities"
+              subtitle={`Constitutional and operational duties of the ${officeTitle} as defined in the MUTCU Constitution 2025 and Leadership Manual.`}
+            />
             <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
               {responsibilities.map((r, i) => (
-                <div key={i} className="flex items-start gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100"
-                  data-aos="fade-up" data-aos-delay={i * 60}>
+                <div key={i} className="flex items-start gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-orange/20 transition-all"
+                  data-aos="fade-up" data-aos-delay={i * 50}>
                   <i className="fas fa-check-circle text-teal mt-0.5 flex-shrink-0" />
                   <span className="text-gray-700 text-sm leading-relaxed">{r}</span>
                 </div>
@@ -119,7 +150,7 @@ export default function CommitteePage({ roleSlug, fallback, heroImage, officeTit
       {/* Additional Sections */}
       {additionalSections}
 
-      {/* CTA */}
+      {/* ─── CTA ────────────────────────────────────────────────────────────── */}
       <section className="py-16 bg-navy text-center">
         <div className="max-w-2xl mx-auto px-4">
           <h3 className="font-montserrat font-black text-white text-2xl mb-3">Be Part of the MUTCU Family</h3>
@@ -130,6 +161,6 @@ export default function CommitteePage({ roleSlug, fallback, heroImage, officeTit
           </div>
         </div>
       </section>
-    </div>
+    </>
   )
 }

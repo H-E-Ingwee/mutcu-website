@@ -1,3 +1,4 @@
+import SEO from '../../components/SEO'
 import MinistryPage from '../../components/MinistryPage'
 
 const ACTIVITIES = [
@@ -9,9 +10,7 @@ const ACTIVITIES = [
   { icon: 'fa-hands-helping', title: 'Discipleship Integration', description: 'Connecting Bible study with practical discipleship and mentorship relationships.' },
 ]
 
-export default function BibleStudyPage() {
-  return (
-    <MinistryPage
+
       slug="bible-study"
       heroImage="/assets/images/bs1.jpg"
       title="Bible Study & Training Ministry"
@@ -24,5 +23,6 @@ export default function BibleStudyPage() {
       activities={ACTIVITIES}
       coordinatorSlug="bible-study"
     />
+    </>
   )
 }

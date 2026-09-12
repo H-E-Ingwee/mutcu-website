@@ -1,3 +1,4 @@
+import SEO from '../../components/SEO'
 import MinistryPage from '../../components/MinistryPage'
 
 const ACTIVITIES = [
@@ -11,6 +12,8 @@ const ACTIVITIES = [
 
 export default function WelfarePage() {
   return (
+    <>
+    <SEO title="Welfare Committee | MUTCU" description="MUTCU Welfare Committee — member care, encouragement, and support in times of need at Murang'a University of Technology Christian Union." url="/ministries/welfare-committee" />
     <MinistryPage
       slug="welfare-committee"
       heroImage="/assets/images/welfare11.jpg"
@@ -23,5 +26,6 @@ export default function WelfarePage() {
       ]}
       activities={ACTIVITIES}
     />
+    </>
   )
 }

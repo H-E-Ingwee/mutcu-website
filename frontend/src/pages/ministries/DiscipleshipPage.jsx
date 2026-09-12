@@ -1,3 +1,4 @@
+import SEO from '../../components/SEO'
 import MinistryPage from '../../components/MinistryPage'
 
 const ACTIVITIES = [
@@ -11,6 +12,8 @@ const ACTIVITIES = [
 
 export default function DiscipleshipPage() {
   return (
+    <>
+    <SEO title="Discipleship Ministry | MUTCU" description="MUTCU Discipleship Ministry — mentorship, small groups, nurturing classes, and spiritual formation at Murang'a University of Technology Christian Union." url="/ministries/discipleship" />
     <MinistryPage
       slug="discipleship"
       heroImage="/assets/images/BS3.jpg"
@@ -24,5 +27,6 @@ export default function DiscipleshipPage() {
       activities={ACTIVITIES}
       coordinatorSlug="bible-study"
     />
+    </>
   )
 }

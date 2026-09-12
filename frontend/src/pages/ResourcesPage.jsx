@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { resourcesAPI } from '../lib/api'
+import SEO from '../components/SEO'
 import PageHero from '../components/PageHero'
 import SectionTitle from '../components/SectionTitle'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -119,8 +120,7 @@ export default function ResourcesPage() {
 
   return (
     <div>
-      <PageHero
-        title="Spiritual Resources"
+      
         subtitle="Equipping the saints with sermons, devotionals, videos, and study materials to foster growth in Christ."
         image="/assets/images/bs1.jpg"
         badge="Library & Media"

@@ -14,7 +14,8 @@ const QUICK_LINKS = [
   { path: '/about', label: 'About MUTCU' },
   { path: '/ministries', label: 'Ministries' },
   { path: '/events', label: 'Events & Programs' },
-  { path: '/blogs', label: 'Blog' },
+  { path: '/sermons', label: 'Sermon Archive' },
+  { path: '/blogs', label: 'Blog & Devotionals' },
   { path: '/gallery', label: 'Gallery' },
   { path: '/resources', label: 'Resources' },
   { path: '/contact', label: 'Contact Us' },
@@ -59,10 +60,16 @@ export default function Footer() {
           <div className="lg:col-span-1">
             <img src="/assets/images/Full Logo.png" alt="MUTCU Logo" className="h-14 mb-4"
               onError={e => { e.target.style.display = 'none' }} />
-            <p className="text-white/60 text-sm leading-relaxed mb-5">
+            <p className="text-white/60 text-sm leading-relaxed mb-3">
               Murang'a University of Technology Christian Union — a student-led, non-denominational fellowship
               building faith through discipleship, evangelism, and service.
             </p>
+            <a href="https://focuskenya.org" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 transition-colors px-3 py-1.5 rounded-xl text-white/70 text-xs font-montserrat font-semibold mb-4">
+              <img src="/assets/images/FOCUS-Kenya-logo.webp" alt="FOCUS Kenya" className="h-4"
+                onError={e => { e.target.style.display = 'none' }} />
+              Affiliated to FOCUS Kenya
+            </a>
             <div className="flex gap-2 flex-wrap">
               {SOCIAL_LINKS.map(s => (
                 <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"

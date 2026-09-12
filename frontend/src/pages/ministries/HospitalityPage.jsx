@@ -1,3 +1,4 @@
+import SEO from '../../components/SEO'
 import MinistryPage from '../../components/MinistryPage'
 
 const ACTIVITIES = [
@@ -11,6 +12,8 @@ const ACTIVITIES = [
 
 export default function HospitalityPage() {
   return (
+    <>
+    <SEO title="Hospitality Ministry | MUTCU" description="MUTCU Hospitality Ministry — welcoming guests, ushering, and creating a warm Christ-centred environment at Murang'a University Christian Union." url="/ministries/hospitality-ministry" />
     <MinistryPage
       slug="hospitality-ministry"
       heroImage="/assets/images/guest-welcome.jfif"
@@ -23,5 +26,6 @@ export default function HospitalityPage() {
       ]}
       activities={ACTIVITIES}
     />
+    </>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ministriesAPI } from '../lib/api'
+import SEO from '../components/SEO'
 import PageHero from '../components/PageHero'
 import SectionTitle from '../components/SectionTitle'
 
@@ -40,8 +41,7 @@ export default function MinistriesPage() {
 
   return (
     <div>
-      <PageHero
-        title="Our Ministries"
+      
         subtitle="Find your place to grow and to serve — each ministry exists to build believers and reach others for Christ."
         image="/assets/images/church2.jpg"
         badge="MUTCU Ministries"

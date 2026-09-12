@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import SEO from '../../components/SEO'
 import MinistryPage from '../../components/MinistryPage'
 import SectionTitle from '../../components/SectionTitle'
 import toast from 'react-hot-toast'
@@ -86,10 +87,7 @@ export default function MusicMinistryPage() {
     toast.success('Thank you for your interest! We will be in touch soon.')
   }
 
-  return (
-    <div>
-      {/* Hero */}
-      <section className="page-hero" style={{ backgroundImage: "url('/assets/images/music2.jpg')" }}>
+  
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(4,0,61,0.88) 0%, rgba(4,0,61,0.65) 100%)' }} />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange/20 border border-orange/30 text-orange text-xs font-montserrat font-bold uppercase tracking-widest mb-4">
@@ -271,5 +269,6 @@ export default function MusicMinistryPage() {
         </div>
       </section>
     </div>
+    </>
   )
 }

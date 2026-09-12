@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { eventsAPI } from '../lib/api'
+import SEO from '../components/SEO'
 import PageHero from '../components/PageHero'
 import SectionTitle from '../components/SectionTitle'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -117,6 +118,7 @@ export default function EventsPage() {
   const [filter, setFilter] = useState('ALL')
   const [showUpcoming, setShowUpcoming] = useState(true)
   const [activeTab, setActiveTab] = useState('program')
+  const [calendarMonth, setCalendarMonth] = useState(new Date(2026, 8, 1)) // Sep 2026
 
   useEffect(() => {
     eventsAPI.getAll({ limit: 200 })
@@ -140,8 +142,7 @@ export default function EventsPage() {
 
   return (
     <div>
-      <PageHero
-        title="Events & Programs"
+      
         subtitle="September – December 2026 Semester Program. Sunday services, Friday fellowships, and special activities."
         image="/assets/images/church2.jpg"
         badge="Semester 2 · 2026"
@@ -154,7 +155,11 @@ export default function EventsPage() {
             <div className="flex rounded-xl overflow-hidden border border-gray-200">
               <button onClick={() => setActiveTab('program')}
                 className={`px-4 py-2 text-sm font-montserrat font-semibold transition-all ${activeTab === 'program' ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
-                <i className="fas fa-calendar-alt mr-1.5" />Services
+                <i className="fas fa-list mr-1.5" />Services
+              </button>
+              <button onClick={() => setActiveTab('calendar')}
+                className={`px-4 py-2 text-sm font-montserrat font-semibold transition-all ${activeTab === 'calendar' ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+                <i className="fas fa-calendar-alt mr-1.5" />Calendar
               </button>
               <button onClick={() => setActiveTab('activities')}
                 className={`px-4 py-2 text-sm font-montserrat font-semibold transition-all ${activeTab === 'activities' ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
@@ -187,7 +192,76 @@ export default function EventsPage() {
 
       <section className="py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {activeTab === 'program' ? (
+          {activeTab === 'calendar' ? (
+            /* ─── Calendar View ──────────────────────────────────────────────── */
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <button onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+                  className="btn-outline btn-sm"><i className="fas fa-chevron-left" /></button>
+                <h3 className="font-montserrat font-bold text-navy text-lg">
+                  {calendarMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                </h3>
+                <button onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+                  className="btn-outline btn-sm"><i className="fas fa-chevron-right" /></button>
+              </div>
+              {/* Day headers */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                  <div key={d} className="text-center text-xs font-montserrat font-bold text-gray-400 py-2">{d}</div>
+                ))}
+              </div>
+              {/* Calendar grid */}
+              {(() => {
+                const year = calendarMonth.getFullYear()
+                const month = calendarMonth.getMonth()
+                const firstDay = new Date(year, month, 1).getDay()
+                const daysInMonth = new Date(year, month + 1, 0).getDate()
+                const cells = []
+                for (let i = 0; i < firstDay; i++) cells.push(null)
+                for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+                while (cells.length % 7 !== 0) cells.push(null)
+
+                const allEvents = [...STATIC_EVENTS]
+                const getEventsForDay = (day) => {
+                  if (!day) return []
+                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                  return allEvents.filter(e => e.date === dateStr)
+                }
+
+                return (
+                  <div className="grid grid-cols-7 gap-1">
+                    {cells.map((day, i) => {
+                      const dayEvents = getEventsForDay(day)
+                      const isToday = day && `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` === today
+                      return (
+                        <div key={i} className={`min-h-16 rounded-xl p-1.5 border transition-all ${day ? 'bg-white border-gray-100 hover:border-orange/30' : 'bg-transparent border-transparent'} ${isToday ? 'border-orange bg-orange/5' : ''}`}>
+                          {day && (
+                            <>
+                              <div className={`text-xs font-montserrat font-bold mb-1 ${isToday ? 'text-orange' : 'text-gray-500'}`}>{day}</div>
+                              <div className="space-y-0.5">
+                                {dayEvents.slice(0, 2).map((ev, j) => (
+                                  <div key={j} className={`text-xs px-1 py-0.5 rounded font-semibold truncate ${ev.service_type === 'SUNDAY' ? 'bg-navy/10 text-navy' : ev.service_type === 'FRIDAY' ? 'bg-orange/10 text-orange' : 'bg-teal/10 text-teal'}`}>
+                                    {ev.title.length > 12 ? ev.title.slice(0, 12) + '…' : ev.title}
+                                  </div>
+                                ))}
+                                {dayEvents.length > 2 && <div className="text-xs text-gray-400 font-semibold">+{dayEvents.length - 2} more</div>}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+              {/* Legend */}
+              <div className="flex flex-wrap gap-3 mt-5 text-xs font-montserrat font-semibold">
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-navy/20" />Sunday Service</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange/20" />Friday Fellowship</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-teal/20" />Special Event</span>
+              </div>
+            </div>
+          ) : activeTab === 'program' ? (
             loading ? <LoadingSpinner text="Loading program..." /> : filtered.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {filtered.map((ev, i) => (

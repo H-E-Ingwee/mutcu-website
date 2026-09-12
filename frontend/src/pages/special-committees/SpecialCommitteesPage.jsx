@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import SectionTitle from '../../components/SectionTitle'
+import SEO from '../../components/SEO'
 
 const COMMITTEES = [
   { title: 'Advisory Board', slug: 'advisory-board', icon: 'fa-users-cog', description: 'Providing strategic guidance, wisdom, and oversight to the Executive Council and the Union.', link: '/special-committees/advisory-board' },
@@ -13,8 +14,7 @@ const COMMITTEES = [
 export default function SpecialCommitteesPage() {
   return (
     <div>
-      <PageHero
-        title="Special Committees"
+      
         subtitle="MUTCU's special committees provide oversight, accountability, continuity, and resource mobilization for the Union."
         image="/assets/images/church2.jpg"
         badge="Special Committees"

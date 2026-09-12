@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { eventsAPI, prayerAPI, newsletterAPI } from '../lib/api'
 import SectionTitle from '../components/SectionTitle'
 import LoadingSpinner from '../components/LoadingSpinner'
+import SEO from '../components/SEO'
 import toast from 'react-hot-toast'
 
 const HERO_SLIDES = [
@@ -131,6 +132,13 @@ export default function HomePage() {
   const slide = HERO_SLIDES[currentSlide]
 
   return (
+    <>
+    <SEO
+      title="MUTCU — Inspire Love, Hope & Godliness"
+      description="Murang'a University of Technology Christian Union — a Christ-centred student fellowship at MUT. Join us for discipleship, evangelism, worship, and fellowship."
+      url="/"
+      keywords="MUTCU, Murang'a University Christian Union, MUT Christian Union, FOCUS Kenya, Christian fellowship Kenya, university Christian union"
+    />
     <div>
       {/* ─── Hero ─────────────────────────────────────────────────────────────── */}
       <section className="hero-section" style={{ marginTop: '-80px' }}>
@@ -457,5 +465,6 @@ export default function HomePage() {
         </div>
       </section>
     </div>
+    </>
   )
 }

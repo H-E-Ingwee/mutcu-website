@@ -1,3 +1,4 @@
+import SEO from '../../components/SEO'
 import MinistryPage from '../../components/MinistryPage'
 
 const ACTIVITIES = [
@@ -11,6 +12,8 @@ const ACTIVITIES = [
 
 export default function RMCPage() {
   return (
+    <>
+    <SEO title="Resource Mobilization Committee | MUTCU" description="MUTCU Resource Mobilization Committee — stewardship and mobilization of financial and material resources for ministry at Murang'a University Christian Union." url="/ministries/rmc" />
     <MinistryPage
       slug="rmc"
       heroImage="/assets/images/prayer1.jpg"
@@ -23,5 +26,6 @@ export default function RMCPage() {
       ]}
       activities={ACTIVITIES}
     />
+    </>
   )
 }

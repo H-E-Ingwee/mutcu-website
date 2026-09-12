@@ -1,16 +1,11 @@
 import { useState } from 'react'
 import { contactAPI, prayerAPI } from '../lib/api'
+import SEO from '../components/SEO'
 import PageHero from '../components/PageHero'
 import SectionTitle from '../components/SectionTitle'
 import toast from 'react-hot-toast'
 
 const SUBJECTS = ['General Inquiry', 'Ministry Information', 'Event Information', 'Prayer Request', 'Partnership', 'Media & Press', 'Other']
-const SOCIALS = [
-  { icon: 'fab fa-facebook-f', url: 'https://facebook.com/mutcu' },
-  { icon: 'fab fa-x-twitter', url: 'https://x.com/mutcu' },
-  { icon: 'fab fa-instagram', url: 'https://instagram.com/mutcu' },
-  { icon: 'fab fa-youtube', url: 'https://youtube.com/@mutcu' },
-]
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' })
@@ -29,10 +24,7 @@ export default function ContactPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const errs = validate()
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs)
-      return
-    }
+    if (Object.keys(errs).length > 0) { setErrors(errs); return }
     setErrors({})
     setSubmitting(true)
     try {
@@ -54,8 +46,7 @@ export default function ContactPage() {
 
   return (
     <div>
-      <PageHero
-        title="Contact Us"
+      
         subtitle="We'd love to hear from you. Reach out with any questions, prayer requests, or partnership inquiries."
         image="/assets/images/church2.jpg"
         badge="Get In Touch"
@@ -97,14 +88,9 @@ export default function ContactPage() {
               <div className="mt-8">
                 <h4 className="font-montserrat font-bold text-navy text-sm mb-3">Follow Us</h4>
                 <div className="flex gap-3">
-                  {SOCIALS.map((s, index) => (
-                    <a
-                      key={s.url || index}
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-10 h-10 rounded-xl bg-navy flex items-center justify-center text-white hover:bg-orange transition-colors"
-                    >
+                  
+                    <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                      className="w-10 h-10 rounded-xl bg-navy flex items-center justify-center text-white hover:bg-orange transition-colors">
                       <i className={s.icon} />
                     </a>
                   ))}

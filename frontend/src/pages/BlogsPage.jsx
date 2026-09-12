@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { blogsAPI } from '../lib/api'
+import SEO from '../components/SEO'
 import PageHero from '../components/PageHero'
 import SectionTitle from '../components/SectionTitle'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -23,8 +24,7 @@ export default function BlogsPage() {
 
   return (
     <div>
-      <PageHero
-        title="Blog & Devotionals"
+      
         subtitle="Spiritual insights, testimonies, and reflections from the MUTCU community."
         image="/assets/images/bs1.jpg"
         badge="MUTCU Blog"
