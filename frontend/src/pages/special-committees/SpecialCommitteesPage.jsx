@@ -14,7 +14,7 @@ const COMMITTEES = [
 export default function SpecialCommitteesPage() {
   return (
     <div>
-      
+      <PageHero
         subtitle="MUTCU's special committees provide oversight, accountability, continuity, and resource mobilization for the Union."
         image="/assets/images/church2.jpg"
         badge="Special Committees"
