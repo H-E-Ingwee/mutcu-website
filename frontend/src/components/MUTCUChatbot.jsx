@@ -222,12 +222,6 @@ export default function MUTCUChatbot() {
         )}
       </button>
 
-      {/* Tooltip on first load */}
-      
-          <div className="absolute bottom-0 right-5 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-navy" />
-        </div>
-      )}
-
       <style>{`
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(20px) scale(0.95); }
