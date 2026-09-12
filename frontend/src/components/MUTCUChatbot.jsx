@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../lib/api'
 
+const WELCOME_MESSAGE = {
+  role: 'assistant',
+  content: "Hi! I'm the MUTCU AI assistant. Ask me about joining MUTCU, ministries, Sunday services, or member resources.",
+}
+
 const SUGGESTED_QUESTIONS = [
   'How do I join MUTCU?',
   'What ministries does MUTCU have?',
@@ -9,10 +14,8 @@ const SUGGESTED_QUESTIONS = [
   'What is BEST-P?',
   'Tell me about CREAM ministry',
   'How do I access the member portal?',
-  'What is MUTCU\'s motto?',
+  "What is MUTCU's motto?",
 ]
-
-
 
 function MessageBubble({ message, isLast }) {
   const isUser = message.role === 'user'
@@ -221,6 +224,8 @@ export default function MUTCUChatbot() {
           </>
         )}
       </button>
+
+      {/* Tooltip on first load */}
 
       <style>{`
         @keyframes slideUp {
