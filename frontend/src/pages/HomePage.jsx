@@ -429,7 +429,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      
+      {/* ─── Newsletter ───────────────────────────────────────────────────────── */}
+      <section className="py-20" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
         <div className="max-w-2xl mx-auto px-4 text-center" data-aos="fade-up">
           <i className="fas fa-envelope-open-text text-white text-5xl mb-4 block" />
           <h2 className="font-montserrat font-black text-white text-3xl md:text-4xl mb-3">Stay Connected</h2>
