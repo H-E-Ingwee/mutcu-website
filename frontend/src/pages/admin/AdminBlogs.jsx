@@ -244,7 +244,9 @@ export default function AdminBlogs() {
                       placeholder="faith, devotional, prayer, testimony" />
                   </div>
 
-                  
+                  <div>
+                    <label className="form-label">Content <span className="text-orange">*</span></label>
+                    <RichTextEditor
                       value={form.content}
                       onChange={content => setForm(f => ({ ...f, content }))}
                       placeholder="Write your blog post here... Use the toolbar above to format your content."
