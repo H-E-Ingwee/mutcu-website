@@ -27,6 +27,7 @@ Always be warm, encouraging, and Christ-centred in your responses. Keep answers 
 async function callGroq(messages, maxTokens = 500, temperature = 0.7) {
   if (!GROQ_API_KEY) throw new Error('GROQ_API_KEY not configured')
 
+  // Use compound-mini — clean, fast, no reasoning text
   const response = await fetch(GROQ_URL, {
     method: 'POST',
     headers: {
@@ -34,7 +35,7 @@ async function callGroq(messages, maxTokens = 500, temperature = 0.7) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'groq/compound-mini',
       messages,
       max_tokens: maxTokens,
       temperature,
