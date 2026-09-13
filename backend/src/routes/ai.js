@@ -13,9 +13,9 @@ const {
   getAvailableProviders,
 } = require('../lib/gemini')
 
-// ─── Simple in-memory rate limiter ───────────────────────────────────────────
+// Rate limiter
 const requestCounts = new Map()
-function rateLimit(ip, limit = 10, windowMs = 60000) {
+function rateLimit(ip, limit = 15, windowMs = 60000) {
   const now = Date.now()
   const key = `${ip}-${Math.floor(now / windowMs)}`
   const count = (requestCounts.get(key) || 0) + 1
@@ -29,22 +29,18 @@ function rateLimit(ip, limit = 10, windowMs = 60000) {
   return count > limit
 }
 
-// ─── GET /api/ai/status ───────────────────────────────────────────────────────
+// GET /api/ai/status
 router.get('/status', (req, res) => {
   const providers = getAvailableProviders()
-  res.json({
-    available: providers.primary !== 'none',
-    providers,
-    features: ['prayer-encouragement', 'devotional', 'blog-draft', 'ministry-match', 'chatbot'],
-  })
+  res.json({ available: providers.primary !== 'none', providers, features: ['prayer-encouragement', 'devotional', 'blog-draft', 'ministry-match', 'chatbot', 'newsletter-content'] })
 })
 
-// ─── POST /api/ai/chat — MUTCU Chatbot ───────────────────────────────────────
+// POST /api/ai/chat — MUTCU Chatbot
 router.post('/chat', async (req, res) => {
   try {
     const ip = req.ip || req.connection.remoteAddress
     if (rateLimit(ip, 30, 60000)) {
-      return res.status(429).json({ error: 'Too many messages. Please wait a moment before sending more.' })
+      return res.status(429).json({ error: 'Too many messages. Please wait a moment.' })
     }
 
     const { messages } = req.body
@@ -52,73 +48,58 @@ router.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'Messages array is required' })
     }
 
-    // Validate message format and limit history to last 10 messages
     const validMessages = messages
       .filter(m => m.role && m.content && ['user', 'assistant'].includes(m.role))
       .slice(-10)
       .map(m => ({ role: m.role, content: String(m.content).substring(0, 1000) }))
 
-    if (validMessages.length === 0) {
-      return res.status(400).json({ error: 'No valid messages provided' })
-    }
+    if (validMessages.length === 0) return res.status(400).json({ error: 'No valid messages' })
 
     const result = await chatWithMUTCU(validMessages)
     res.json({ reply: result.reply, provider: result.provider })
   } catch (err) {
-    console.error('[CHATBOT] Error:', err.message)
+    console.error('[CHATBOT]', err.message)
     res.status(500).json({
-      error: 'AI service temporarily unavailable',
-      reply: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment, or contact us directly at info@mutcu.org. God bless you! 🙏",
+      error: 'Service temporarily unavailable',
+      reply: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment, or contact us at mutcunion@gmail.com. God bless you!",
     })
   }
 })
 
-// ─── POST /api/ai/prayer-encouragement ───────────────────────────────────────
+// POST /api/ai/prayer-encouragement
 router.post('/prayer-encouragement', async (req, res) => {
   try {
     const ip = req.ip || req.connection.remoteAddress
-    if (rateLimit(ip, 10, 60000)) {
-      return res.status(429).json({ error: 'Too many requests. Please try again later.' })
-    }
+    if (rateLimit(ip, 10, 60000)) return res.status(429).json({ error: 'Too many requests.' })
 
     const { request, name } = req.body
     if (!request?.trim()) return res.status(400).json({ error: 'Prayer request is required' })
 
     const encouragement = await generatePrayerEncouragement(request.trim(), name?.trim())
-
     res.json({
-      encouragement: encouragement || "Thank you for sharing your heart with us. Our Prayer Ministry will be interceding for you. \"Cast all your anxiety on him because he cares for you.\" (1 Peter 5:7). May God's peace, which surpasses all understanding, guard your heart and mind in Christ Jesus.",
+      encouragement: encouragement || "Thank you for sharing your heart with us. Our Prayer Ministry will be interceding for you. \"Cast all your anxiety on him because he cares for you.\" (1 Peter 5:7). May God's peace, which surpasses all understanding, guard your heart and mind in Christ Jesus. Amen.",
       fallback: !encouragement,
     })
   } catch (err) {
     console.error('[AI] Prayer encouragement error:', err.message)
     res.json({
-      encouragement: "Thank you for sharing your heart with us. Our Prayer Ministry will be interceding for you. \"Cast all your anxiety on him because he cares for you.\" (1 Peter 5:7). May God's peace guard your heart and mind in Christ Jesus.",
+      encouragement: "Thank you for sharing your heart with us. Our Prayer Ministry will be interceding for you. \"Cast all your anxiety on him because he cares for you.\" (1 Peter 5:7). May God's peace guard your heart and mind in Christ Jesus. Amen.",
       fallback: true,
     })
   }
 })
 
-// ─── GET /api/ai/devotional ───────────────────────────────────────────────────
+// GET /api/ai/devotional
 router.get('/devotional', async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0]
 
-    // Check Supabase cache
-    const { data: cached } = await supabase
-      .from('website_settings')
-      .select('value')
-      .eq('key', `ai_devotional_${today}`)
-      .single()
-
+    const { data: cached } = await supabase.from('website_settings').select('value').eq('key', `ai_devotional_${today}`).single()
     if (cached?.value) {
-      try {
-        return res.json({ devotional: JSON.parse(cached.value), cached: true, date: today })
-      } catch {}
+      try { return res.json({ devotional: JSON.parse(cached.value), cached: true, date: today }) } catch {}
     }
 
     const devotional = await generateDailyDevotional(today)
-
     const fallback = {
       title: 'Walking in Faith Today',
       verse: 'Trust in the LORD with all your heart and lean not on your own understanding.',
@@ -128,13 +109,9 @@ router.get('/devotional', async (req, res) => {
     }
 
     if (devotional) {
-      // Cache for 24 hours
       await supabase.from('website_settings').upsert({
-        key: `ai_devotional_${today}`,
-        value: JSON.stringify(devotional),
-        label: `AI Devotional for ${today}`,
-        category: 'ai_cache',
-        updated_at: new Date().toISOString(),
+        key: `ai_devotional_${today}`, value: JSON.stringify(devotional),
+        label: `AI Devotional for ${today}`, category: 'ai_cache', updated_at: new Date().toISOString(),
       }, { onConflict: 'key' }).catch(() => {})
     }
 
@@ -145,15 +122,13 @@ router.get('/devotional', async (req, res) => {
   }
 })
 
-// ─── POST /api/ai/blog-draft (admin only) ────────────────────────────────────
+// POST /api/ai/blog-draft (admin)
 router.post('/blog-draft', authenticate, requireAdmin, async (req, res) => {
   try {
     const { title, topic, tone } = req.body
     if (!title?.trim()) return res.status(400).json({ error: 'Title is required' })
-
     const draft = await generateBlogDraft(title.trim(), topic?.trim(), tone || 'devotional')
-    if (!draft) return res.status(503).json({ error: 'AI generation failed. Please try again.' })
-
+    if (!draft) return res.status(503).json({ error: 'Generation failed. Please try again.' })
     res.json({ draft, title })
   } catch (err) {
     console.error('[AI] Blog draft error:', err.message)
@@ -161,33 +136,26 @@ router.post('/blog-draft', authenticate, requireAdmin, async (req, res) => {
   }
 })
 
-// ─── POST /api/ai/contact-reply ───────────────────────────────────────────────
+// POST /api/ai/contact-reply
 router.post('/contact-reply', async (req, res) => {
   try {
     const { name, subject, message } = req.body
     if (!name || !subject || !message) return res.status(400).json({ error: 'Missing fields' })
     const reply = await generateContactReply(name, subject, message)
     res.json({ reply })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
+  } catch (err) { res.status(500).json({ error: err.message }) }
 })
 
-// ─── POST /api/ai/ministry-match ─────────────────────────────────────────────
+// POST /api/ai/ministry-match
 router.post('/ministry-match', async (req, res) => {
   try {
     const ip = req.ip || req.connection.remoteAddress
-    if (rateLimit(ip, 20, 60000)) {
-      return res.status(429).json({ error: 'Too many requests. Please try again later.' })
-    }
+    if (rateLimit(ip, 20, 60000)) return res.status(429).json({ error: 'Too many requests.' })
 
     const { passion, gifts, activity, personality, time } = req.body
-    if (!passion || !gifts || !activity) {
-      return res.status(400).json({ error: 'Please answer all quiz questions' })
-    }
+    if (!passion || !gifts || !activity) return res.status(400).json({ error: 'Please answer all quiz questions' })
 
     const match = await generateMinistryMatch({ passion, gifts, activity, personality, time })
-
     res.json({
       match: match || {
         primary: 'Prayer Ministry',
