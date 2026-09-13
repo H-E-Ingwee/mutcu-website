@@ -132,7 +132,6 @@ export default function AdminGallery() {
                 <label className="form-label">Description</label>
                 <input className="form-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" />
               </div>
-            </div>
             <div className="flex gap-3 mt-6">
               <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 justify-center">
                 <Check size={15} />{saving ? 'Adding...' : 'Add Photo'}
