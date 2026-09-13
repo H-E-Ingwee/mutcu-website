@@ -191,7 +191,6 @@ export default function HomePage() {
       </section>
 
       {sectionOn('show_join_cta') && (
-      {/* ─── Join CTA Banner ──────────────────────────────────────────────────── */}
       <section className="bg-orange py-10">
         <div className="max-w-4xl mx-auto px-4 text-center" data-aos="zoom-in">
           <i className="fas fa-user-plus text-white text-5xl mb-4 block" />
@@ -210,7 +209,6 @@ export default function HomePage() {
       )}
 
       {sectionOn('show_about') && (
-      {/* ─── About Section ────────────────────────────────────────────────────── */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -264,7 +262,6 @@ export default function HomePage() {
       )}
 
       {sectionOn('show_values') && (
-      {/* ─── Core Values ──────────────────────────────────────────────────────── */}
       <section className="py-20" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionTitle title="Our Core Values" subtitle="The values that shape our culture, our leadership, and how we serve in MUT and beyond." center light />
@@ -285,7 +282,6 @@ export default function HomePage() {
       )}
 
       {sectionOn('show_ministries') && (
-      {/* ─── Ministries Preview ───────────────────────────────────────────────── */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionTitle title="Our Ministries" subtitle="Find your place to grow and to serve — each ministry exists to build believers and reach others." />
@@ -319,7 +315,6 @@ export default function HomePage() {
       )}
 
       {sectionOn('show_events') && (
-      {/* ─── Upcoming Events ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionTitle title="Upcoming Service Highlights" subtitle="From our Sunday services and Friday fellowships — plan ahead and invite a friend." />
@@ -363,7 +358,6 @@ export default function HomePage() {
       )}
 
       {sectionOn('show_prayer') && (
-      {/* ─── Prayer Request — AI Enhanced ────────────────────────────────────── */}
       <section className="py-20" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -390,7 +384,6 @@ export default function HomePage() {
       )}
 
       {sectionOn('show_testimonials') && (
-      {/* ─── Testimonials ─────────────────────────────────────────────────────── */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <SectionTitle title="What Our Members Say" subtitle="Hear from our members about their MUTCU experience." />
@@ -412,7 +405,6 @@ export default function HomePage() {
       )}
 
       {sectionOn('show_gallery') && (
-      {/* ─── Gallery Preview ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionTitle title="Our Gallery" subtitle="Moments from our fellowship, services, events, and outreach activities." />
@@ -439,7 +431,7 @@ export default function HomePage() {
       </section>
       )}
 
-      
+      <section className="py-20 bg-orange">
         <div className="max-w-2xl mx-auto px-4 text-center" data-aos="fade-up">
           <i className="fas fa-envelope-open-text text-white text-5xl mb-4 block" />
           <h2 className="font-montserrat font-black text-white text-3xl md:text-4xl mb-3">Stay Connected</h2>
