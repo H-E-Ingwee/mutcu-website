@@ -70,12 +70,14 @@ export default function AdminSettings() {
   }
 
   const sendTestEmail = async () => {
+    const emailTo = settings.site_email || ''
+    if (!emailTo) return toast.error('Please set a contact email in Site Identity first')
     setTestEmailSending(true)
     try {
-      await api.post('/admin/test-email', { email: settings.site_email })
-      toast.success('Test email sent!')
+      const res = await api.post('/admin/test-email', { email: emailTo })
+      toast.success(res.message || `Test email sent to ${emailTo}!`)
     } catch (err) {
-      toast.error('Failed to send test email')
+      toast.error(err.response?.data?.error || err.message || 'Failed to send test email. Check your Brevo API key.')
     } finally {
       setTestEmailSending(false)
     }

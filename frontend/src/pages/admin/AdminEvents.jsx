@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { eventsAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
 import { Plus, Edit2, Trash2, X, Check, Star } from 'lucide-react'
+import ImagePicker from '../../components/admin/ImagePicker'
 
 const SERVICE_TYPES = ['SUNDAY', 'FRIDAY', 'SPECIAL', 'OUTREACH', 'TRAINING']
 const EMPTY = { title: '', description: '', date: '', time: '', location: '', image_url: '', service_type: 'SUNDAY', speaker: '', is_active: true, is_featured: false }
@@ -134,10 +135,11 @@ export default function AdminEvents() {
                 <label className="form-label">Description</label>
                 <textarea className="form-textarea" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Event description..." />
               </div>
-              <div>
-                <label className="form-label">Image URL</label>
-                <input className="form-input" value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
-              </div>
+              <ImagePicker
+                label="Event Image"
+                value={form.image_url}
+                onChange={url => setForm(f => ({ ...f, image_url: url }))}
+              />
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.is_featured} onChange={e => setForm(f => ({ ...f, is_featured: e.target.checked }))} className="w-4 h-4 accent-orange" />

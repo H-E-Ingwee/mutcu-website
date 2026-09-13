@@ -8,7 +8,6 @@ const NAV_LINKS = [
     label: 'Ministries', path: '/ministries',
     dropdown: [
       { path: '/ministries', label: 'All Ministries' },
-      { path: '/find-your-ministry', label: '✨ Find Your Ministry (AI)' },
       { path: '/ministries/prayer-ministry', label: 'Prayer Ministry' },
       { path: '/ministries/music-ministry', label: 'Music Ministry' },
       { path: '/ministries/missions-evangelism', label: 'Missions & Evangelism' },

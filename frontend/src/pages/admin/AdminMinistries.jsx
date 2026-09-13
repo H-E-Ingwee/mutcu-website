@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ministriesAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
 import { Plus, Edit2, Trash2, X, Check } from 'lucide-react'
+import ImagePicker from '../../components/admin/ImagePicker'
 
 const EMPTY = { name: '', slug: '', description: '', long_description: '', icon: 'fa-star', image_url: '', is_active: true, display_order: 0 }
 
@@ -105,10 +106,11 @@ export default function AdminMinistries() {
                   <input type="number" className="form-input" value={form.display_order} onChange={e => setForm(f => ({ ...f, display_order: parseInt(e.target.value) || 0 }))} />
                 </div>
               </div>
-              <div>
-                <label className="form-label">Image URL</label>
-                <input className="form-input" value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
-              </div>
+              <ImagePicker
+                label="Ministry Image"
+                value={form.image_url}
+                onChange={url => setForm(f => ({ ...f, image_url: url }))}
+              />
               <div>
                 <label className="form-label">Short Description</label>
                 <textarea className="form-textarea" rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description for ministry cards..." />

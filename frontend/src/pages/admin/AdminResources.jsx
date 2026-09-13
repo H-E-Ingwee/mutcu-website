@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { resourcesAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
 import { Plus, Edit2, Trash2, X, Check } from 'lucide-react'
+import ImagePicker from '../../components/admin/ImagePicker'
+import DocumentPicker from '../../components/admin/DocumentPicker'
 
 const TYPES = ['PDF', 'AUDIO', 'VIDEO', 'LINK', 'DOCUMENT']
 const CATEGORIES = ['sermons', 'devotionals', 'constitution', 'forms', 'other']
@@ -112,10 +114,17 @@ export default function AdminResources() {
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="form-label">URL (file link or external link)</label>
-                <input className="form-input" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://..." />
-              </div>
+              <DocumentPicker
+                label="Document / File URL"
+                value={form.url}
+                onChange={url => setForm(f => ({ ...f, url: url }))}
+                onTypeChange={type => setForm(f => ({ ...f, type }))}
+              />
+              <ImagePicker
+                label="Thumbnail Image (optional)"
+                value={form.image_url}
+                onChange={url => setForm(f => ({ ...f, image_url: url }))}
+              />
               <div>
                 <label className="form-label">Description</label>
                 <textarea className="form-textarea" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description..." />

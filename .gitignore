@@ -4,7 +4,7 @@ node_modules/
 # Environment files and local secrets
 .env
 .env.*
-!.env.example
+.env.example
 
 # Private keys and certificates
 *.pem
@@ -28,3 +28,7 @@ coverage/
 .idea/
 .DS_Store
 Thumbs.db
+
+.env
+.env.local
+node_modules/

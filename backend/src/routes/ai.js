@@ -8,6 +8,7 @@ const {
   generateBlogDraft,
   generateContactReply,
   generateMinistryMatch,
+  generateNewsletterContent,
   chatWithMUTCU,
   getAvailableProviders,
 } = require('../lib/gemini')
@@ -199,6 +200,19 @@ router.post('/ministry-match', async (req, res) => {
     })
   } catch (err) {
     console.error('[AI] Ministry match error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/ai/newsletter-content (admin)
+router.post('/newsletter-content', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { blogs, events, customMessage } = req.body
+    const content = await generateNewsletterContent(blogs || [], events || [], customMessage || '')
+    if (!content) return res.status(503).json({ error: 'Content generation failed. Please try again.' })
+    res.json({ content })
+  } catch (err) {
+    console.error('[AI] Newsletter content error:', err.message)
     res.status(500).json({ error: err.message })
   }
 })

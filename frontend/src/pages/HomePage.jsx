@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { eventsAPI, newsletterAPI } from '../lib/api'
+import api from '../lib/api'
 import SectionTitle from '../components/SectionTitle'
 import LoadingSpinner from '../components/LoadingSpinner'
 import SEO from '../components/SEO'
 import AIPrayerForm from '../components/AIPrayerForm'
 import AIDailyDevotional from '../components/AIDailyDevotional'
-import AIMinistryMatcher from '../components/AIMinistryMatcher'
 import toast from 'react-hot-toast'
 
 const HERO_SLIDES = [
@@ -82,9 +82,17 @@ export default function HomePage() {
   const [events, setEvents] = useState([])
   const [eventsLoading, setEventsLoading] = useState(true)
   const [testimonialIdx, setTestimonialIdx] = useState(0)
-  // Prayer form now handled by AIPrayerForm component
   const [newsletterEmail, setNewsletterEmail] = useState('')
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false)
+  const [siteSettings, setSiteSettings] = useState({})
+
+  // Helper: check if a section is enabled (default true if not set)
+  const sectionOn = (key) => siteSettings[key] !== 'false'
+
+  // Fetch site settings for section visibility
+  useEffect(() => {
+    api.get('/settings').then(data => setSiteSettings(data.settings || {})).catch(() => {})
+  }, [])
 
   // Hero slideshow
   useEffect(() => {
@@ -182,6 +190,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      {sectionOn('show_join_cta') && (
       {/* ─── Join CTA Banner ──────────────────────────────────────────────────── */}
       <section className="bg-orange py-10">
         <div className="max-w-4xl mx-auto px-4 text-center" data-aos="zoom-in">
@@ -198,7 +207,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
+      {sectionOn('show_about') && (
       {/* ─── About Section ────────────────────────────────────────────────────── */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -250,7 +261,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
+      {sectionOn('show_values') && (
       {/* ─── Core Values ──────────────────────────────────────────────────────── */}
       <section className="py-20" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -269,7 +282,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
+      {sectionOn('show_ministries') && (
       {/* ─── Ministries Preview ───────────────────────────────────────────────── */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -301,7 +316,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
+      {sectionOn('show_events') && (
       {/* ─── Upcoming Events ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -343,7 +360,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
+      {sectionOn('show_prayer') && (
       {/* ─── Prayer Request — AI Enhanced ────────────────────────────────────── */}
       <section className="py-20" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -368,7 +387,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
+      {sectionOn('show_testimonials') && (
       {/* ─── Testimonials ─────────────────────────────────────────────────────── */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 text-center">
@@ -388,7 +409,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
+      {sectionOn('show_gallery') && (
       {/* ─── Gallery Preview ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -414,8 +437,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      <section className="py-20 bg-orange">
+      
         <div className="max-w-2xl mx-auto px-4 text-center" data-aos="fade-up">
           <i className="fas fa-envelope-open-text text-white text-5xl mb-4 block" />
           <h2 className="font-montserrat font-black text-white text-3xl md:text-4xl mb-3">Stay Connected</h2>

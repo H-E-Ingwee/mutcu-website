@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { leadershipAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
 import { Plus, Edit2, Trash2, X, Check } from 'lucide-react'
+import ImagePicker from '../../components/admin/ImagePicker'
 
 const ROLE_SLUGS = ['chairman', 'vice-chair1', 'vice-chair2', 'secretary', 'vice-secretary', 'treasurer', 'bible-study', 'prayer', 'missions', 'music', 'technical', 'creative']
 
@@ -150,10 +151,11 @@ export default function AdminLeadership() {
                   <input className="form-input" value={form.spiritual_year} onChange={e => setForm(f => ({ ...f, spiritual_year: e.target.value }))} placeholder="2025/2026" />
                 </div>
               </div>
-              <div>
-                <label className="form-label">Photo URL</label>
-                <input className="form-input" value={form.photo_url} onChange={e => setForm(f => ({ ...f, photo_url: e.target.value }))} placeholder="https://..." />
-              </div>
+              <ImagePicker
+                label="Photo"
+                value={form.photo_url}
+                onChange={url => setForm(f => ({ ...f, photo_url: url }))}
+              />
               <div>
                 <label className="form-label">Email</label>
                 <input type="email" className="form-input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@mutcu.org" />

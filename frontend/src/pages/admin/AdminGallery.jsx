@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { galleryAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, X, Check } from 'lucide-react'
+import { Plus, Trash2, X, Check, Upload } from 'lucide-react'
 
 const CATEGORIES = ['worship', 'outreach', 'fellowship', 'events', 'ministry', 'general']
 const EMPTY = { title: '', description: '', image_url: '', category: 'general', display_order: 0, is_active: true }
@@ -12,6 +12,47 @@ export default function AdminGallery() {
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
+  const [uploadMode, setUploadMode] = useState('url') // url | upload
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef(null)
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) return toast.error('Please select an image file')
+    if (file.size > 10 * 1024 * 1024) return toast.error('Image must be under 10MB')
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      formData.append('category', form.category || 'general')
+      formData.append('title', form.title || file.name.replace(/\.[^.]+$/, ''))
+
+      const token = localStorage.getItem('mutcu_website_token')
+      const res = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/gallery/upload`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Upload failed')
+      }
+
+      const data = await res.json()
+      toast.success('Photo uploaded successfully!')
+      setModal(false)
+      setForm(EMPTY)
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
 
   const load = () => {
     setLoading(true)
@@ -44,7 +85,7 @@ export default function AdminGallery() {
           <h1 className="font-montserrat font-black text-navy text-xl">Gallery Management</h1>
           <p className="text-gray-400 text-sm mt-0.5">{gallery.length} photos</p>
         </div>
-        <button onClick={() => { setForm(EMPTY); setModal(true) }} className="btn-primary btn-sm"><Plus size={14} /> Add Photo</button>
+        <button onClick={() => { setForm(EMPTY); setUploadMode('url'); setModal(true) }} className="btn-primary btn-sm"><Plus size={14} /> Add Photo</button>
       </div>
 
       {loading ? <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange" /></div> : (
@@ -74,16 +115,7 @@ export default function AdminGallery() {
       {modal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-montserrat font-bold text-navy text-lg">Add Photo</h3>
-              <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="form-label">Image URL *</label>
-                <input className="form-input" value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
-                {form.image_url && <img src={form.image_url} alt="Preview" className="mt-2 w-full h-32 object-cover rounded-xl" onError={e => { e.target.style.display = 'none' }} />}
-              </div>
+            
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="form-label">Title</label>

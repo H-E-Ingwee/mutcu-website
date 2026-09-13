@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { blogsAPI } from '../../lib/api'
 import RichTextEditor from '../../components/RichTextEditor'
 import AIBlogAssistant from '../../components/AIBlogAssistant'
+import ImagePicker from '../../components/admin/ImagePicker'
 import toast from 'react-hot-toast'
 import { Plus, Edit2, Trash2, X, Check, Eye, EyeOff, FileText, Clock } from 'lucide-react'
 
@@ -224,17 +225,11 @@ export default function AdminBlogs() {
                   </div>
 
                   {/* Featured Image */}
-                  <div>
-                    <label className="form-label">Featured Image URL</label>
-                    <div className="flex gap-3">
-                      <input className="form-input flex-1" value={form.featured_image}
-                        onChange={e => setForm(f => ({ ...f, featured_image: e.target.value }))} placeholder="https://..." />
-                      {form.featured_image && (
-                        <img src={form.featured_image} alt="Preview" className="w-16 h-10 object-cover rounded-lg flex-shrink-0"
-                          onError={e => { e.target.style.display = 'none' }} />
-                      )}
-                    </div>
-                  </div>
+                  <ImagePicker
+                    label="Featured Image"
+                    value={form.featured_image}
+                    onChange={url => setForm(f => ({ ...f, featured_image: url }))}
+                  />
 
                   {/* Tags */}
                   <div>
@@ -244,9 +239,7 @@ export default function AdminBlogs() {
                       placeholder="faith, devotional, prayer, testimony" />
                   </div>
 
-                  <div>
-                    <label className="form-label">Content <span className="text-orange">*</span></label>
-                    <RichTextEditor
+                  
                       value={form.content}
                       onChange={content => setForm(f => ({ ...f, content }))}
                       placeholder="Write your blog post here... Use the toolbar above to format your content."
