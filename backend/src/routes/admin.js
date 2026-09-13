@@ -201,10 +201,4 @@ router.post('/newsletter/send', authenticate, requireAdmin, async (req, res) => 
   }
 })
 
-    res.json({ message: `Test email sent to ${to}` });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 module.exports = router;
