@@ -1,38 +1,50 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import SEO from '../components/SEO'
+import { expoAPI } from '../lib/api'
+import { getToken } from '../lib/api'
+import toast from 'react-hot-toast'
 
-// ─── Photo pools ────────────────────────────────────────────────────────────
+// ─── Image assignments ────────────────────────────────────────────────────────
+// Hero: crowd/energy shot
 const HERO_BG = '/assets/images/expo/IMG_0630.jpg'
 
-const EDITION2_PHOTOS = [
-  { src: '/assets/images/expo/IMG_0616.jpg', alt: 'Business Expo 2026 — Audience' },
-  { src: '/assets/images/expo/IMG_0628.jpg', alt: 'Business Expo 2026 — Speaker session' },
-  { src: '/assets/images/expo/IMG_0777.jpg', alt: 'Business Expo 2026 — Panel discussion' },
-  { src: '/assets/images/expo/IMG_0834.jpg', alt: 'Business Expo 2026 — Networking' },
-  { src: '/assets/images/expo/IMG_0715.jpg', alt: 'Business Expo 2026 — Pitch showcase' },
-  { src: '/assets/images/expo/IMG_0751.jpg', alt: 'Business Expo 2026 — Attendees' },
-  { src: '/assets/images/expo/IMG_0760.jpg', alt: 'Business Expo 2026 — Entrepreneurs' },
-  { src: '/assets/images/expo/IMG_0761.jpg', alt: 'Business Expo 2026 — Presentations' },
-  { src: '/assets/images/expo/IMG_0764.jpg', alt: 'Business Expo 2026 — Workshop' },
-  { src: '/assets/images/expo/IMG_0802.jpg', alt: 'Business Expo 2026 — Engagement' },
-  { src: '/assets/images/expo/IMG_0818.jpg', alt: 'Business Expo 2026 — Speakers' },
-  { src: '/assets/images/expo/IMG_0909.jpg', alt: 'Business Expo 2026 — Pitching' },
-  { src: '/assets/images/expo/IMG_0910.jpg', alt: 'Business Expo 2026 — Crowd' },
-  { src: '/assets/images/expo/IMG_0912.jpg', alt: 'Business Expo 2026 — Interaction' },
-  { src: '/assets/images/expo/IMG_0916.jpg', alt: 'Business Expo 2026 — Mentors' },
-  { src: '/assets/images/expo/IMG_0917.jpg', alt: 'Business Expo 2026 — Stage' },
-  { src: '/assets/images/expo/IMG_0918.jpg', alt: 'Business Expo 2026 — Participants' },
-  { src: '/assets/images/expo/IMG_0922.jpg', alt: 'Business Expo 2026 — Networking' },
-  { src: '/assets/images/expo/IMG_0924.jpg', alt: 'Business Expo 2026 — Celebration' },
-  { src: '/assets/images/expo/IMG_0925.jpg', alt: 'Business Expo 2026 — Closing' },
-  { src: '/assets/images/expo/IMG_0578.jpg', alt: 'Business Expo 2026 — Moments' },
-  { src: '/assets/images/expo/IMG_0579.jpg', alt: 'Business Expo 2026 — Highlights' },
-  { src: '/assets/images/expo/IMG_0703.jpg', alt: 'Business Expo 2026 — Community' },
-  { src: '/assets/images/expo/IMG_0783 (1).jpg', alt: 'Business Expo 2026 — Founders' },
+// Speaker/panel photos — prominent individuals with mic or panel shots
+const SPEAKER_PHOTOS = [
+  { src: '/assets/images/expo/IMG_0917.jpg', caption: 'Keynote Session' },
+  { src: '/assets/images/expo/IMG_0916.jpg', caption: 'Panel Discussion' },
+  { src: '/assets/images/expo/IMG_0910.jpg', caption: 'Speaker Address' },
+  { src: '/assets/images/expo/IMG_0912.jpg', caption: 'Business Panel' },
+  { src: '/assets/images/expo/IMG_0909.jpg', caption: 'Founder Insights' },
+  { src: '/assets/images/expo/IMG_0918.jpg', caption: 'Entrepreneur Talk' },
 ]
 
-// ─── Countdown hook ──────────────────────────────────────────────────────────
+// Edition 1 — use general MUTCU photos that relate to early-stage events
+const EDITION1_PHOTOS = [
+  { src: '/assets/images/expo/IMG_0578.jpg', alt: '1st Edition — Opening session' },
+  { src: '/assets/images/expo/IMG_0579.jpg', alt: '1st Edition — Attendees' },
+  { src: '/assets/images/expo/IMG_0703.jpg', alt: '1st Edition — Student entrepreneurs' },
+]
+
+// Edition 2 — all the main event photos
+const EDITION2_PHOTOS = [
+  { src: '/assets/images/expo/IMG_0616.jpg', alt: 'Expo 2026 — Audience' },
+  { src: '/assets/images/expo/IMG_0628.jpg', alt: 'Expo 2026 — Speaker session' },
+  { src: '/assets/images/expo/IMG_0777.jpg', alt: 'Expo 2026 — Panel discussion' },
+  { src: '/assets/images/expo/IMG_0834.jpg', alt: 'Expo 2026 — Networking' },
+  { src: '/assets/images/expo/IMG_0715.jpg', alt: 'Expo 2026 — Pitch showcase' },
+  { src: '/assets/images/expo/IMG_0751.jpg', alt: 'Expo 2026 — Attendees' },
+  { src: '/assets/images/expo/IMG_0760.jpg', alt: 'Expo 2026 — Entrepreneurs' },
+  { src: '/assets/images/expo/IMG_0761.jpg', alt: 'Expo 2026 — Presentations' },
+  { src: '/assets/images/expo/IMG_0764.jpg', alt: 'Expo 2026 — Workshop' },
+  { src: '/assets/images/expo/IMG_0802.jpg', alt: 'Expo 2026 — Engagement' },
+  { src: '/assets/images/expo/IMG_0818.jpg', alt: 'Expo 2026 — Speakers' },
+  { src: '/assets/images/expo/IMG_0922.jpg', alt: 'Expo 2026 — Networking' },
+  { src: '/assets/images/expo/IMG_0924.jpg', alt: 'Expo 2026 — Celebration' },
+  { src: '/assets/images/expo/IMG_0925.jpg', alt: 'Expo 2026 — Closing' },
+  { src: '/assets/images/expo/IMG_0783 (1).jpg', alt: 'Expo 2026 — Founders' },
+]
+
+// ─── Countdown hook ───────────────────────────────────────────────────────────
 function useCountdown(targetDate) {
   const [timeLeft, setTimeLeft] = useState({})
   useEffect(() => {
@@ -53,7 +65,127 @@ function useCountdown(targetDate) {
   return timeLeft
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+// ─── SEO JSON-LD ──────────────────────────────────────────────────────────────
+function ExpoSEO() {
+  useEffect(() => {
+    document.title = 'MUTCU Business Exposition 2027 — Beyond Ideas: Blueprint of a CEO'
+
+    const setMeta = (name, content, prop = false) => {
+      const attr = prop ? 'property' : 'name'
+      let el = document.querySelector(`meta[${attr}="${name}"]`)
+      if (!el) { el = document.createElement('meta'); el.setAttribute(attr, name); document.head.appendChild(el) }
+      el.setAttribute('content', content)
+    }
+
+    const desc = "Join the 3rd MUTCU Business Exposition on 13 March 2027 at Murang'a University of Technology. Keynotes, workshops, Founder's Arena pitch competition with KSh 100,000 prize pool. Register free."
+    const img = 'https://mutcu.org/assets/images/expo/IMG_0630.jpg'
+    const url = 'https://mutcu.org/business-expo'
+
+    setMeta('description', desc)
+    setMeta('keywords', "MUTCU Business Exposition, MUTCU Business Expo 2027, MUT entrepreneurship, student pitch competition Kenya, Founder's Arena, Beyond Ideas Blueprint CEO, Murang'a University business event, student startup Kenya, MUTCU 2027, Christian entrepreneurship Kenya")
+    setMeta('author', "Murang'a University of Technology Christian Union")
+    setMeta('robots', 'index, follow')
+
+    // Open Graph
+    setMeta('og:title', 'MUTCU Business Exposition 2027 — Beyond Ideas: Blueprint of a CEO', true)
+    setMeta('og:description', desc, true)
+    setMeta('og:image', img, true)
+    setMeta('og:image:width', '1200', true)
+    setMeta('og:image:height', '630', true)
+    setMeta('og:image:alt', 'MUTCU Business Exposition 2027 — students at the event', true)
+    setMeta('og:url', url, true)
+    setMeta('og:type', 'website', true)
+    setMeta('og:site_name', 'MUTCU', true)
+    setMeta('og:locale', 'en_KE', true)
+
+    // Twitter Card
+    setMeta('twitter:card', 'summary_large_image')
+    setMeta('twitter:title', 'MUTCU Business Exposition 2027 — Beyond Ideas: Blueprint of a CEO')
+    setMeta('twitter:description', desc)
+    setMeta('twitter:image', img)
+    setMeta('twitter:site', '@muranga_university_cu')
+    setMeta('twitter:creator', '@muranga_university_cu')
+
+    // Canonical
+    let canonical = document.querySelector('link[rel="canonical"]')
+    if (!canonical) { canonical = document.createElement('link'); canonical.setAttribute('rel', 'canonical'); document.head.appendChild(canonical) }
+    canonical.setAttribute('href', url)
+
+    // JSON-LD Event schema
+    const removeOld = document.querySelector('script[data-seo="expo"]')
+    if (removeOld) removeOld.remove()
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.setAttribute('data-seo', 'expo')
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Event',
+      name: 'MUTCU Business Exposition 2027 — Beyond Ideas: Blueprint of a CEO',
+      description: desc,
+      startDate: '2027-03-13T08:00:00+03:00',
+      endDate: '2027-03-13T16:00:00+03:00',
+      eventStatus: 'https://schema.org/EventScheduled',
+      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      location: {
+        '@type': 'Place',
+        name: "Murang'a University of Technology",
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: "Murang'a",
+          addressRegion: 'Central Kenya',
+          addressCountry: 'KE',
+        },
+      },
+      image: [img],
+      organizer: {
+        '@type': 'Organization',
+        name: "Murang'a University of Technology Christian Union (MUTCU)",
+        url: 'https://mutcu.org',
+        email: 'mutcunion@gmail.com',
+        telephone: '+254757930723',
+        sameAs: [
+          'https://www.facebook.com/people/Muranga-University-of-Technology-Christian-Union-1/100068859581695/',
+          'https://www.instagram.com/muranga_university_cu/',
+        ],
+      },
+      offers: {
+        '@type': 'Offer',
+        name: 'Free Attendance',
+        price: '0',
+        priceCurrency: 'KES',
+        availability: 'https://schema.org/InStock',
+        url: 'https://mutcu.org/business-expo#register',
+        validFrom: '2026-10-01',
+      },
+      keywords: 'entrepreneurship, business, student startup, pitch competition, Kenya, university, Christian',
+      inLanguage: 'en',
+      isAccessibleForFree: true,
+      maximumAttendeeCapacity: 300,
+    })
+    document.head.appendChild(script)
+
+    return () => {
+      const s = document.querySelector('script[data-seo="expo"]')
+      if (s) s.remove()
+    }
+  }, [])
+  return null
+}
+
+// ─── Reusable UI pieces ───────────────────────────────────────────────────────
+function SectionBadge({ text, icon, light = false }) {
+  return (
+    <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-montserrat font-bold uppercase tracking-widest mb-4 ${
+      light
+        ? 'text-orange bg-orange/10 border border-orange/25'
+        : 'text-orange bg-orange/10 border border-orange/25'
+    }`}>
+      {icon && <i className={`fas ${icon}`} />}
+      {text}
+    </div>
+  )
+}
+
 function CountdownUnit({ value, label }) {
   return (
     <div className="flex flex-col items-center">
@@ -66,76 +198,70 @@ function CountdownUnit({ value, label }) {
   )
 }
 
-function StatPill({ icon, value, label }) {
-  return (
-    <div className="flex flex-col items-center gap-1 px-6 py-4 rounded-2xl"
-      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-      <i className={`fas ${icon} text-orange text-xl mb-1`} />
-      <div className="font-montserrat font-black text-white text-2xl">{value}</div>
-      <div className="text-white/50 text-xs font-montserrat font-semibold uppercase tracking-wider text-center">{label}</div>
-    </div>
-  )
-}
-
-function SectionBadge({ text, icon }) {
-  return (
-    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-orange text-xs font-montserrat font-bold uppercase tracking-widest mb-4"
-      style={{ background: 'rgba(255,151,0,0.12)', border: '1px solid rgba(255,151,0,0.25)' }}>
-      {icon && <i className={`fas ${icon}`} />}
-      {text}
-    </div>
-  )
-}
-
-// ─── Gallery lightbox ────────────────────────────────────────────────────────
-function GalleryGrid({ photos }) {
+// ─── Gallery with lightbox ────────────────────────────────────────────────────
+function PhotoGrid({ photos, initialVisible = 12 }) {
   const [lightbox, setLightbox] = useState(null)
-  const [visible, setVisible] = useState(12)
+  const [visible, setVisible] = useState(initialVisible)
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
         {photos.slice(0, visible).map((p, i) => (
           <button key={i} onClick={() => setLightbox(i)}
-            className="relative overflow-hidden rounded-xl group aspect-square focus:outline-none">
-            <img src={p.src} alt={p.alt}
+            className="relative overflow-hidden rounded-xl group focus:outline-none focus:ring-2 focus:ring-orange"
+            style={{ aspectRatio: '1/1' }}>
+            <img
+              src={p.src} alt={p.alt || p.caption || 'Expo photo'}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              onError={e => { e.target.style.display = 'none' }} />
-            <div className="absolute inset-0 bg-navy/0 group-hover:bg-navy/40 transition-all duration-300 flex items-center justify-center">
-              <i className="fas fa-expand text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              loading="lazy"
+              onError={e => { e.target.parentElement.style.display = 'none' }}
+            />
+            <div className="absolute inset-0 bg-navy/0 group-hover:bg-navy/50 transition-all duration-300 flex items-end justify-start p-2">
+              {p.caption && (
+                <span className="text-white text-xs font-montserrat font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-navy/60 px-2 py-1 rounded-lg">
+                  {p.caption}
+                </span>
+              )}
+              <i className="fas fa-expand text-white text-sm absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
           </button>
         ))}
       </div>
+
       {visible < photos.length && (
         <div className="text-center mt-6">
           <button onClick={() => setVisible(photos.length)}
-            className="btn-outline-expo">
-            View All {photos.length} Photos <i className="fas fa-images ml-2" />
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-montserrat font-bold text-navy text-sm border-2 border-navy hover:bg-navy hover:text-white transition-all duration-200">
+            View All {photos.length} Photos <i className="fas fa-images" />
           </button>
         </div>
       )}
 
       {/* Lightbox */}
       {lightbox !== null && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
+        <div className="fixed inset-0 z-[200] bg-black/96 flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}>
-          <button className="absolute top-4 right-4 text-white/60 hover:text-white text-2xl z-10"
+          <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10 transition-all"
             onClick={() => setLightbox(null)}>
             <i className="fas fa-times" />
           </button>
-          <button className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white text-2xl z-10"
-            onClick={e => { e.stopPropagation(); setLightbox(i => (i - 1 + photos.length) % photos.length) }}>
+          <button className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10 transition-all"
+            onClick={e => { e.stopPropagation(); setLightbox(prev => (prev - 1 + photos.length) % photos.length) }}>
             <i className="fas fa-chevron-left" />
           </button>
-          <img src={photos[lightbox].src} alt={photos[lightbox].alt}
-            className="max-h-[85vh] max-w-[90vw] object-contain rounded-xl"
-            onClick={e => e.stopPropagation()} />
-          <button className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white text-2xl z-10"
-            onClick={e => { e.stopPropagation(); setLightbox(i => (i + 1) % photos.length) }}>
+          <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
+            <img src={photos[lightbox].src} alt={photos[lightbox].alt || photos[lightbox].caption || 'Expo photo'}
+              className="w-full max-h-[80vh] object-contain rounded-xl"
+              loading="lazy" />
+            {photos[lightbox].caption && (
+              <p className="text-white/60 text-sm text-center mt-3 font-montserrat">{photos[lightbox].caption}</p>
+            )}
+          </div>
+          <button className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10 transition-all"
+            onClick={e => { e.stopPropagation(); setLightbox(prev => (prev + 1) % photos.length) }}>
             <i className="fas fa-chevron-right" />
           </button>
-          <div className="absolute bottom-4 text-white/40 text-sm font-montserrat">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/40 text-xs font-montserrat">
             {lightbox + 1} / {photos.length}
           </div>
         </div>
@@ -144,17 +270,261 @@ function GalleryGrid({ photos }) {
   )
 }
 
-// ─── Main Page ───────────────────────────────────────────────────────────────
+// ─── Registration Form ────────────────────────────────────────────────────────
+function RegistrationForm() {
+  const [type, setType] = useState('attendee')
+  const [form, setForm] = useState({
+    full_name: '', email: '', phone: '',
+    course: '', year_of_study: '',
+    business_name: '', business_stage: '',
+    how_heard: '', message: '',
+  })
+  const [errors, setErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(null) // null | { type, name }
+
+  const set = (k, v) => {
+    setForm(f => ({ ...f, [k]: v }))
+    if (errors[k]) setErrors(e => ({ ...e, [k]: '' }))
+  }
+
+  const validate = () => {
+    const e = {}
+    if (!form.full_name.trim()) e.full_name = 'Full name is required'
+    if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Valid email required'
+    if (!form.phone.trim() || form.phone.trim().length < 7) e.phone = 'Valid phone number required'
+    if (type === 'pitcher' && !form.business_name.trim()) e.business_name = 'Business name is required for pitchers'
+    return e
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    const errs = validate()
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setSubmitting(true)
+    try {
+      await expoAPI.register({ ...form, participation_type: type })
+      setSubmitted({ type, name: form.full_name.trim() })
+    } catch (err) {
+      if (err.response?.status === 409) {
+        toast.error(err.message || 'You are already registered. Check your email.')
+      } else {
+        toast.error(err.message || 'Submission failed. Please try again.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const inputClass = (field) =>
+    `w-full px-4 py-3 rounded-xl border text-sm font-lato transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange/40 ${
+      errors[field]
+        ? 'border-red-400 bg-red-50'
+        : 'border-gray-200 bg-white focus:border-orange'
+    }`
+
+  const labelClass = 'block text-xs font-montserrat font-bold text-navy uppercase tracking-wider mb-1.5'
+
+  // ── Success state ──
+  if (submitted) {
+    return (
+      <div className="text-center py-10 px-6">
+        <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5"
+          style={{ background: 'rgba(22,163,74,0.1)', border: '2px solid #16A34A' }}>
+          <i className="fas fa-check-circle text-green-600 text-4xl" />
+        </div>
+        <h3 className="font-montserrat font-black text-navy text-2xl mb-2">
+          {submitted.type === 'pitcher' ? "You're In, Founder!" : "You're Registered!"}
+        </h3>
+        <p className="text-gray-600 text-sm leading-relaxed mb-4 max-w-sm mx-auto">
+          {submitted.type === 'pitcher'
+            ? `Welcome to Founder's Arena, ${submitted.name}! Your application has been received. Check your email for confirmation and next steps.`
+            : `See you on 13 March 2027, ${submitted.name}! A confirmation has been sent to your email.`
+          }
+        </p>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-montserrat font-semibold text-white mb-6"
+          style={{ background: '#FF9700' }}>
+          <i className="fas fa-calendar-alt" />
+          Saturday, 13 March 2027 · 8:00 AM
+        </div>
+        <div className="flex flex-wrap gap-3 justify-center">
+          <button onClick={() => { setSubmitted(null); setForm({ full_name:'',email:'',phone:'',course:'',year_of_study:'',business_name:'',business_stage:'',how_heard:'',message:'' }); setType('attendee') }}
+            className="text-sm font-montserrat font-semibold text-orange hover:underline">
+            Register another person
+          </button>
+          <span className="text-gray-300">·</span>
+          <a href="https://www.instagram.com/muranga_university_cu/" target="_blank" rel="noopener noreferrer"
+            className="text-sm font-montserrat font-semibold text-navy hover:text-orange transition-colors">
+            Follow us for updates
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} noValidate>
+      {/* Type toggle */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {[
+          { val: 'attendee', icon: 'fa-users', label: 'Attend the Expo', sub: 'Free entry' },
+          { val: 'pitcher', icon: 'fa-microphone', label: "Pitch My Business", sub: "Founder's Arena" },
+        ].map(opt => (
+          <button key={opt.val} type="button" onClick={() => setType(opt.val)}
+            className={`flex flex-col items-center gap-1.5 p-4 rounded-2xl border-2 transition-all duration-200 ${
+              type === opt.val
+                ? 'border-orange bg-orange/5'
+                : 'border-gray-200 hover:border-orange/40'
+            }`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+              type === opt.val ? 'bg-orange' : 'bg-gray-100'
+            }`}>
+              <i className={`fas ${opt.icon} text-sm ${type === opt.val ? 'text-white' : 'text-gray-400'}`} />
+            </div>
+            <span className={`font-montserrat font-bold text-sm ${type === opt.val ? 'text-navy' : 'text-gray-500'}`}>
+              {opt.label}
+            </span>
+            <span className={`text-xs font-montserrat ${type === opt.val ? 'text-orange' : 'text-gray-400'}`}>
+              {opt.sub}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Personal details */}
+      <div className="space-y-4 mb-4">
+        <div>
+          <label className={labelClass}>Full Name *</label>
+          <input type="text" value={form.full_name} onChange={e => set('full_name', e.target.value)}
+            placeholder="Your full name" className={inputClass('full_name')} />
+          {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name}</p>}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Email Address *</label>
+            <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
+              placeholder="your@email.com" className={inputClass('email')} />
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+          </div>
+          <div>
+            <label className={labelClass}>Phone Number *</label>
+            <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
+              placeholder="+254 7XX XXX XXX" className={inputClass('phone')} />
+            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Course / Programme</label>
+            <input type="text" value={form.course} onChange={e => set('course', e.target.value)}
+              placeholder="e.g. BSc Computer Science" className={inputClass('course')} />
+          </div>
+          <div>
+            <label className={labelClass}>Year of Study</label>
+            <select value={form.year_of_study} onChange={e => set('year_of_study', e.target.value)}
+              className={inputClass('year_of_study')}>
+              <option value="">Select year</option>
+              <option value="1st Year">1st Year</option>
+              <option value="2nd Year">2nd Year</option>
+              <option value="3rd Year">3rd Year</option>
+              <option value="4th Year">4th Year</option>
+              <option value="5th Year">5th Year</option>
+              <option value="Postgraduate">Postgraduate</option>
+              <option value="Alumni">Alumni</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Pitcher-only fields */}
+      {type === 'pitcher' && (
+        <div className="space-y-4 mb-4 p-4 rounded-2xl" style={{ background: 'rgba(255,151,0,0.05)', border: '1px solid rgba(255,151,0,0.2)' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <i className="fas fa-fire text-orange text-sm" />
+            <span className="font-montserrat font-bold text-navy text-sm">Founder's Arena Details</span>
+          </div>
+          <div>
+            <label className={labelClass}>Business / Idea Name *</label>
+            <input type="text" value={form.business_name} onChange={e => set('business_name', e.target.value)}
+              placeholder="What is your business called?" className={inputClass('business_name')} />
+            {errors.business_name && <p className="text-red-500 text-xs mt-1">{errors.business_name}</p>}
+          </div>
+          <div>
+            <label className={labelClass}>Business Stage</label>
+            <select value={form.business_stage} onChange={e => set('business_stage', e.target.value)}
+              className={inputClass('business_stage')}>
+              <option value="">Select stage</option>
+              <option value="Just an idea">Just an idea — not started yet</option>
+              <option value="Early stage">Early stage — testing / MVP</option>
+              <option value="Growing">Growing — have customers / revenue</option>
+              <option value="Established">Established — running for 1+ year</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* How heard + message */}
+      <div className="space-y-4 mb-6">
+        <div>
+          <label className={labelClass}>How did you hear about the Expo?</label>
+          <select value={form.how_heard} onChange={e => set('how_heard', e.target.value)}
+            className={inputClass('how_heard')}>
+            <option value="">Select one</option>
+            <option value="MUTCU Sunday Service">MUTCU Sunday Service</option>
+            <option value="Instagram">Instagram</option>
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="Facebook">Facebook</option>
+            <option value="TikTok">TikTok</option>
+            <option value="Friend / Classmate">Friend / Classmate</option>
+            <option value="Poster / Flyer">Poster / Flyer</option>
+            <option value="MUTCU Website">MUTCU Website</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label className={labelClass}>Anything else you'd like us to know?</label>
+          <textarea value={form.message} onChange={e => set('message', e.target.value)}
+            placeholder="Questions, dietary needs, accessibility requirements, or anything else..."
+            rows={3} className={`${inputClass('message')} resize-none`} />
+        </div>
+      </div>
+
+      {/* Submit */}
+      <button type="submit" disabled={submitting}
+        className="w-full flex items-center justify-center gap-3 py-4 rounded-xl font-montserrat font-bold text-white text-sm transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{ background: submitting ? '#ccc' : '#FF9700', boxShadow: submitting ? 'none' : '0 4px 20px rgba(255,151,0,0.35)' }}>
+        {submitting ? (
+          <>
+            <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+            Submitting...
+          </>
+        ) : type === 'pitcher' ? (
+          <><i className="fas fa-fire" /> Apply to Founder's Arena</>
+        ) : (
+          <><i className="fas fa-check" /> Secure My Spot — It's Free</>
+        )}
+      </button>
+
+      <p className="text-center text-gray-400 text-xs mt-3 font-lato">
+        A confirmation email will be sent to you. No spam, ever.
+      </p>
+    </form>
+  )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function BusinessExpoPage() {
   const countdown = useCountdown('2027-03-13T08:00:00')
   const [activeStage, setActiveStage] = useState(0)
-  const [navScrolled, setNavScrolled] = useState(false)
-  const sectionsRef = useRef({})
+  const [activeSpeakerPhoto, setActiveSpeakerPhoto] = useState(0)
 
+  // Auto-advance speaker photos
   useEffect(() => {
-    const onScroll = () => setNavScrolled(window.scrollY > 80)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    const t = setInterval(() => setActiveSpeakerPhoto(p => (p + 1) % SPEAKER_PHOTOS.length), 3500)
+    return () => clearInterval(t)
   }, [])
 
   const scrollTo = (id) => {
@@ -164,38 +534,41 @@ export default function BusinessExpoPage() {
 
   const STAGES = [
     {
-      num: '01', label: 'The Call', icon: 'fa-bullhorn',
+      num: '01', label: 'The Call', shortLabel: 'The Call', icon: 'fa-bullhorn',
       tagline: 'Every journey starts with an idea.',
       desc: 'Have a business idea or an existing venture? Step forward, fill the application form, identify the problem you want to solve, share your vision, and begin your journey towards the pitch stage. This is your opportunity to put your entrepreneurial ambitions into motion.',
-      action: 'Apply Now',
     },
     {
-      num: '02', label: 'The Den', icon: 'fa-fire',
+      num: '02', label: 'The Den', shortLabel: 'The Den', icon: 'fa-fire',
       tagline: 'Challenge your thinking. Refine your idea.',
       desc: 'A good idea must stand up to questions. The Den is where participants are challenged to think critically about their business ideas, test their assumptions, and identify gaps. Through questions, feedback, and constructive critique, you will strengthen your idea and develop a clearer understanding of your business.',
-      action: 'Learn More',
     },
     {
-      num: '03', label: 'Top 10 Blueprint Training', icon: 'fa-graduation-cap',
+      num: '03', label: 'Blueprint Training', shortLabel: 'Training', icon: 'fa-graduation-cap',
       tagline: 'Prepare to build and lead.',
-      desc: 'Selected participants advance to focused training designed to strengthen their business models and sharpen their entrepreneurial skills. The training helps participants develop their understanding of their markets, communicate their value, and prepare to present their ventures effectively.',
-      action: 'Learn More',
+      desc: 'Selected Top 10 participants advance to focused training designed to strengthen their business models and sharpen their entrepreneurial skills. The training helps participants develop their understanding of their markets, communicate their value, and prepare to present their ventures effectively.',
     },
     {
-      num: '04', label: 'The Pitch Showcase', icon: 'fa-trophy',
+      num: '04', label: 'Pitch Showcase', shortLabel: 'Pitch', icon: 'fa-trophy',
       tagline: 'Present your vision. Make your case.',
       desc: 'Bring everything together and present your business idea or existing venture before a panel of judges and business leaders. Explain the problem you are solving, the value your business offers, and the potential of your idea. Compete for recognition and a share of the KSh 100,000 total prize pool.',
-      action: 'Register to Pitch',
     },
   ]
 
   const WHAT_TO_EXPECT = [
     { icon: 'fa-microphone-alt', title: 'Keynote Sessions', desc: 'Learn about leadership, the CEO mindset, and excellence in the marketplace from experienced business leaders.' },
     { icon: 'fa-tools', title: 'Practical Workshops', desc: 'Develop business skills and gain insights you can apply directly to your own venture.' },
-    { icon: 'fa-fire-alt', title: "Founder's Arena", desc: 'A structured journey to challenge your thinking, strengthen your business idea, and prepare to pitch.' },
-    { icon: 'fa-comments', title: 'Business Panel Discussions', desc: 'Learn from experienced entrepreneurs about the challenges and opportunities of building a business.' },
-    { icon: 'fa-handshake', title: 'Networking Opportunities', desc: 'Connect with entrepreneurs, mentors, speakers, and fellow students who share your passion for business.' },
-    { icon: 'fa-trophy', title: 'Pitch Competition', desc: 'Present your venture before judges and compete for recognition and a share of the KSh 100,000 prize pool.' },
+    { icon: 'fa-fire-alt', title: "Founder's Arena", desc: 'A structured 4-stage journey to challenge your thinking, strengthen your idea, and prepare to pitch.' },
+    { icon: 'fa-comments', title: 'Panel Discussions', desc: 'Learn from experienced entrepreneurs about the challenges and opportunities of building a business.' },
+    { icon: 'fa-handshake', title: 'Networking', desc: 'Connect with entrepreneurs, mentors, speakers, and fellow students who share your passion for business.' },
+    { icon: 'fa-trophy', title: 'Pitch Competition', desc: 'Present your venture before judges and compete for a share of the KSh 100,000 prize pool.' },
+  ]
+
+  const EDITION2_SPEAKERS = [
+    { name: 'Lionel Tinega', company: 'DigiAfrica', icon: 'fa-laptop-code', color: '#3B82F6' },
+    { name: 'Lennox Omondi', company: 'EcoBana', icon: 'fa-leaf', color: '#16A34A' },
+    { name: 'Elizabeth Nungari', company: 'Bagged & Beyond', icon: 'fa-shopping-bag', color: '#EC4899' },
+    { name: 'Dennis Waweru', company: 'GYEF', icon: 'fa-rocket', color: '#FF9700' },
   ]
 
   const EDITION1_SPEAKERS = [
@@ -204,132 +577,98 @@ export default function BusinessExpoPage() {
     { name: 'AMICA', topic: 'Capital Acquisition', icon: 'fa-coins' },
   ]
 
-  const EDITION2_SPEAKERS = [
-    { name: 'Lionel Tinega', company: 'DigiAfrica', icon: 'fa-laptop-code' },
-    { name: 'Lennox Omondi', company: 'EcoBana', icon: 'fa-leaf' },
-    { name: 'Elizabeth Nungari', company: 'Bagged & Beyond', icon: 'fa-shopping-bag' },
-    { name: 'Dennis Waweru', company: 'GYEF', icon: 'fa-rocket' },
-  ]
-
   return (
     <>
-      <SEO
-        title="MUTCU Business Exposition 2027 — Beyond Ideas: Blueprint of a CEO"
-        description="The 3rd MUTCU Business Exposition. Saturday, 13 March 2027 at Murang'a University of Technology. Keynotes, workshops, Founder's Arena, pitch competition with KSh 100,000 prize pool."
-        url="/business-expo"
-        keywords="MUTCU Business Expo, MUTCU Business Exposition, MUT entrepreneurship, student pitch competition, Founder's Arena, Beyond Ideas Blueprint of a CEO"
-      />
-
-      {/* ─── Sticky Expo Nav ─────────────────────────────────────────────── */}
-      <div className={`fixed top-[80px] left-0 right-0 z-40 transition-all duration-300 ${navScrolled ? 'shadow-lg' : ''}`}
-        style={{ background: navScrolled ? 'rgba(4,0,61,0.97)' : 'transparent', backdropFilter: navScrolled ? 'blur(12px)' : 'none' }}>
-        <div className="max-w-7xl mx-auto px-4 hidden md:flex items-center gap-1 py-2 overflow-x-auto">
-          {[
-            { id: 'about', label: 'About' },
-            { id: 'journey', label: 'Our Journey' },
-            { id: 'expo2027', label: 'Expo 2027' },
-            { id: 'founders-arena', label: "Founder's Arena" },
-            { id: 'partners', label: 'Partners' },
-            { id: 'contact', label: 'Contact' },
-          ].map(item => (
-            <button key={item.id} onClick={() => scrollTo(item.id)}
-              className="px-3 py-1.5 rounded-lg text-xs font-montserrat font-semibold text-white/70 hover:text-orange hover:bg-white/10 transition-all whitespace-nowrap">
-              {item.label}
-            </button>
-          ))}
-          <div className="ml-auto">
-            <a href="https://forms.gle/mutcu-expo-register" target="_blank" rel="noopener noreferrer"
-              className="px-4 py-1.5 rounded-lg text-xs font-montserrat font-bold text-white transition-all"
-              style={{ background: '#FF9700' }}>
-              Register Now
-            </a>
-          </div>
-        </div>
-      </div>
+      <ExpoSEO />
 
       <div className="overflow-x-hidden">
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            HERO
-        ═══════════════════════════════════════════════════════════════════ */}
+        {/* ═══════════════════════════════════════════════════════════════
+            1. HERO
+        ═══════════════════════════════════════════════════════════════ */}
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{ marginTop: '-80px' }}>
-          {/* Background */}
+          {/* Background photo — lighter overlay so photo shows */}
           <div className="absolute inset-0">
-            <img src={HERO_BG} alt="MUTCU Business Expo"
-              className="w-full h-full object-cover"
+            <img src={HERO_BG} alt="MUTCU Business Exposition 2027"
+              className="w-full h-full object-cover object-center"
               onError={e => { e.target.style.background = '#04003D' }} />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(4,0,61,0.93) 0%, rgba(4,0,61,0.75) 60%, rgba(10,0,96,0.85) 100%)' }} />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, rgba(4,0,61,0.88) 0%, rgba(4,0,61,0.65) 55%, rgba(4,0,61,0.82) 100%)' }} />
           </div>
 
           {/* Decorative rings */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-5 border border-orange pointer-events-none" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full opacity-[0.03] border border-orange pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
+            style={{ border: '1px solid rgba(255,151,0,0.08)' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full pointer-events-none"
+            style={{ border: '1px solid rgba(255,151,0,0.04)' }} />
 
-          <div className="relative z-10 text-center px-4 max-w-5xl mx-auto pt-24 pb-16">
+          <div className="relative z-10 text-center px-4 max-w-5xl mx-auto pt-28 pb-16">
             {/* Edition badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-orange text-xs font-montserrat font-bold uppercase tracking-widest mb-6"
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-orange text-xs font-montserrat font-bold uppercase tracking-widest mb-5"
               style={{ background: 'rgba(255,151,0,0.12)', border: '1px solid rgba(255,151,0,0.3)' }}>
               <i className="fas fa-star" /> 3rd Edition · 13 March 2027
             </div>
 
             {/* Org name */}
-            <p className="text-white/50 text-sm font-montserrat font-semibold uppercase tracking-[0.3em] mb-3">
+            <p className="text-white/60 text-xs sm:text-sm font-montserrat font-semibold uppercase tracking-[0.25em] mb-4">
               Murang'a University of Technology Christian Union
             </p>
 
-            {/* Main title */}
-            <h1 className="font-montserrat font-black text-white leading-none mb-2" style={{ fontSize: 'clamp(2.5rem, 7vw, 5.5rem)' }}>
-              MUTCU BUSINESS
-            </h1>
-            <h1 className="font-montserrat font-black leading-none mb-6" style={{ fontSize: 'clamp(2.5rem, 7vw, 5.5rem)', color: '#FF9700' }}>
-              EXPOSITION
+            {/* Main title — single semantic h1 */}
+            <h1 className="font-montserrat font-black text-white leading-none mb-2"
+              style={{ fontSize: 'clamp(2.2rem, 6.5vw, 5rem)' }}>
+              MUTCU BUSINESS <span style={{ color: '#FF9700' }}>EXPOSITION</span>
             </h1>
 
             {/* Theme */}
-            <div className="inline-block mb-4">
-              <div className="h-px w-16 bg-orange/40 mx-auto mb-4" />
-              <p className="text-white/90 font-montserrat font-bold text-xl md:text-2xl tracking-wide">
+            <div className="flex items-center justify-center gap-4 my-5">
+              <div className="h-px flex-1 max-w-[80px]" style={{ background: 'rgba(255,151,0,0.35)' }} />
+              <p className="text-white/90 font-montserrat font-bold text-base sm:text-xl tracking-wide">
                 BEYOND IDEAS: BLUEPRINT OF A CEO
               </p>
-              <div className="h-px w-16 bg-orange/40 mx-auto mt-4" />
+              <div className="h-px flex-1 max-w-[80px]" style={{ background: 'rgba(255,151,0,0.35)' }} />
             </div>
 
-            <p className="text-white/65 text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-10">
+            <p className="text-white/65 text-sm sm:text-base max-w-xl mx-auto leading-relaxed mb-8">
               Ideas are a beginning. It's time to build. Join students, entrepreneurs, business leaders, and mentors for a day of learning, pitching, networking, and growth.
             </p>
 
             {/* Event details strip */}
-            <div className="flex flex-wrap justify-center gap-4 mb-10 text-sm">
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-5 mb-8 text-xs sm:text-sm">
               {[
                 { icon: 'fa-calendar-alt', text: 'Saturday, 13 March 2027' },
                 { icon: 'fa-clock', text: '8:00 AM – 4:00 PM' },
                 { icon: 'fa-map-marker-alt', text: "Murang'a University of Technology" },
               ].map((d, i) => (
-                <div key={i} className="flex items-center gap-2 text-white/70 font-montserrat font-semibold">
+                <div key={i} className="flex items-center gap-2 text-white/75 font-montserrat font-semibold">
                   <i className={`fas ${d.icon} text-orange`} />
                   {d.text}
                 </div>
               ))}
             </div>
 
-            {/* CTA buttons */}
-            <div className="flex flex-wrap gap-4 justify-center mb-14">
-              <a href="#expo2027" onClick={e => { e.preventDefault(); scrollTo('expo2027') }}
-                className="flex items-center gap-2 px-8 py-4 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1 hover:shadow-2xl"
-                style={{ background: '#FF9700', boxShadow: '0 4px 24px rgba(255,151,0,0.35)' }}>
-                Register to Attend <i className="fas fa-arrow-right" />
-              </a>
-              <a href="#founders-arena" onClick={e => { e.preventDefault(); scrollTo('founders-arena') }}
-                className="flex items-center gap-2 px-8 py-4 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
-                style={{ border: '1.5px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)' }}>
-                Pitch Your Business <i className="fas fa-microphone" />
-              </a>
+            {/* CTAs */}
+            <div className="flex flex-wrap gap-3 justify-center mb-10">
+              <button onClick={() => scrollTo('register')}
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
+                style={{ background: '#FF9700', boxShadow: '0 4px 20px rgba(255,151,0,0.4)' }}>
+                Secure Your Spot <i className="fas fa-arrow-right" />
+              </button>
+              <button onClick={() => scrollTo('founders-arena')}
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
+                style={{ border: '1.5px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.07)' }}>
+                Apply to Pitch <i className="fas fa-microphone" />
+              </button>
+              <button onClick={() => scrollTo('about')}
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl font-montserrat font-bold text-white/70 text-sm transition-all hover:text-white hover:-translate-y-1"
+                style={{ border: '1.5px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)' }}>
+                Learn More <i className="fas fa-chevron-down" />
+              </button>
             </div>
 
             {/* Countdown */}
             <div>
-              <p className="text-white/40 text-xs font-montserrat font-bold uppercase tracking-widest mb-4">Countdown to Expo Day</p>
-              <div className="flex justify-center gap-4">
+              <p className="text-white/35 text-xs font-montserrat font-bold uppercase tracking-widest mb-3">Countdown to Expo Day</p>
+              <div className="flex justify-center gap-3 sm:gap-4">
                 <CountdownUnit value={countdown.days} label="Days" />
                 <CountdownUnit value={countdown.hours} label="Hours" />
                 <CountdownUnit value={countdown.minutes} label="Mins" />
@@ -338,326 +677,61 @@ export default function BusinessExpoPage() {
             </div>
           </div>
 
-          {/* Scroll indicator */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/30 text-xs font-montserrat">
+          {/* Scroll cue */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/25 text-xs font-montserrat">
             <span>Scroll</span>
             <i className="fas fa-chevron-down animate-bounce" />
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            PRIZE POOL BANNER
-        ═══════════════════════════════════════════════════════════════════ */}
+        {/* ═══════════════════════════════════════════════════════════════
+            2. SOCIAL PROOF STATS BAR
+        ═══════════════════════════════════════════════════════════════ */}
         <section style={{ background: '#FF9700' }}>
-          <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-center gap-4 text-center sm:text-left">
-            <div className="flex items-center gap-3">
-              <i className="fas fa-trophy text-white text-3xl" />
-              <div>
-                <div className="font-montserrat font-black text-white text-2xl">KSh 100,000</div>
-                <div className="text-white/80 text-sm font-montserrat font-semibold">Total Prize Pool — Student Pitch Competition</div>
-              </div>
-            </div>
-            <div className="hidden sm:block h-10 w-px bg-white/30" />
-            <p className="text-white/90 text-sm font-montserrat font-semibold max-w-xs">
-              Compete, pitch your idea, and win a share of the biggest prize pool in MUTCU Expo history.
-            </p>
-            <a href="#founders-arena" onClick={e => { e.preventDefault(); scrollTo('founders-arena') }}
-              className="px-6 py-2.5 rounded-xl font-montserrat font-bold text-orange text-sm bg-white hover:bg-white/90 transition-all whitespace-nowrap">
-              Apply to Pitch →
-            </a>
-          </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            ABOUT THE EXPO
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section id="about" className="py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              {/* Text */}
-              <div data-aos="fade-right">
-                <SectionBadge text="About the Expo" icon="fa-info-circle" />
-                <h2 className="font-montserrat font-black text-navy text-3xl md:text-4xl leading-tight mb-4">
-                  What Is the MUTCU<br />Business Exposition?
-                </h2>
-                <div className="h-1 w-12 rounded-full mb-6" style={{ background: '#FF9700' }} />
-                <p className="text-gray-600 text-base leading-relaxed mb-4">
-                  The MUTCU Business Exposition is an annual entrepreneurship event organised by the Murang'a University of Technology Christian Union (MUTCU). The Expo brings together students, entrepreneurs, business leaders, and mentors to share practical business knowledge, build networks, and explore opportunities in entrepreneurship.
-                </p>
-                <p className="text-gray-600 text-base leading-relaxed mb-6">
-                  We believe that <strong className="text-navy">faith and professional excellence go hand in hand.</strong> Through the Expo, we encourage students to build businesses with integrity, innovation, purpose, and a commitment to serving others.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                  {[
-                    { icon: 'fa-lightbulb', title: 'Ideas to Action', text: 'Turn your business idea into a real venture with structured guidance.' },
-                    { icon: 'fa-network-wired', title: 'Build Networks', text: 'Connect with entrepreneurs, mentors, and business leaders.' },
-                    { icon: 'fa-crown', title: 'Faith & Business', text: 'Integrate Christian values with entrepreneurial excellence.' },
-                    { icon: 'fa-chart-line', title: 'Grow Your Venture', text: 'Gain skills and insights to scale your existing business.' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,151,0,0.12)' }}>
-                        <i className={`fas ${item.icon} text-orange text-sm`} />
-                      </div>
-                      <div>
-                        <div className="font-montserrat font-bold text-navy text-sm mb-0.5">{item.title}</div>
-                        <div className="text-gray-500 text-xs leading-relaxed">{item.text}</div>
-                      </div>
-                    </div>
-                  ))}
+          <div className="max-w-5xl mx-auto px-4 py-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              {[
+                { value: '3', label: 'Editions', icon: 'fa-star' },
+                { value: '120+', label: 'Attendees (2026)', icon: 'fa-users' },
+                { value: '7', label: 'Speakers to Date', icon: 'fa-microphone' },
+                { value: 'KSh 100K', label: 'Prize Pool 2027', icon: 'fa-trophy' },
+              ].map((s, i) => (
+                <div key={i} className="flex flex-col items-center gap-0.5">
+                  <i className={`fas ${s.icon} text-white/70 text-sm mb-1`} />
+                  <div className="font-montserrat font-black text-white text-xl sm:text-2xl">{s.value}</div>
+                  <div className="text-white/80 text-xs font-montserrat font-semibold">{s.label}</div>
                 </div>
-                <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: 'rgba(4,0,61,0.04)', border: '1px solid rgba(4,0,61,0.08)' }}>
-                  <img src="/assets/images/FOCUS-Kenya-logo.webp" alt="FOCUS Kenya" className="h-8"
-                    onError={e => { e.target.style.display = 'none' }} />
-                  <p className="text-gray-500 text-xs leading-relaxed">
-                    Organised by <strong className="text-navy">MUTCU</strong> — a Christ-centred student fellowship at MUT, affiliated with <strong className="text-navy">FOCUS Kenya</strong>.
-                  </p>
-                </div>
-              </div>
-
-              {/* Image collage */}
-              <div data-aos="fade-left" className="relative">
-                <div className="grid grid-cols-2 gap-3">
-                  <img src="/assets/images/expo/IMG_0917.jpg" alt="Expo moment"
-                    className="rounded-2xl w-full h-52 object-cover shadow-lg"
-                    onError={e => { e.target.style.display = 'none' }} />
-                  <img src="/assets/images/expo/IMG_0910.jpg" alt="Expo moment"
-                    className="rounded-2xl w-full h-52 object-cover shadow-lg mt-6"
-                    onError={e => { e.target.style.display = 'none' }} />
-                  <img src="/assets/images/expo/IMG_0777.jpg" alt="Expo moment"
-                    className="rounded-2xl w-full h-52 object-cover shadow-lg -mt-6"
-                    onError={e => { e.target.style.display = 'none' }} />
-                  <img src="/assets/images/expo/IMG_0834.jpg" alt="Expo moment"
-                    className="rounded-2xl w-full h-52 object-cover shadow-lg"
-                    onError={e => { e.target.style.display = 'none' }} />
-                </div>
-                {/* Floating badge */}
-                <div className="absolute -bottom-4 -left-4 rounded-2xl px-5 py-3 shadow-xl"
-                  style={{ background: '#FF9700' }}>
-                  <div className="font-montserrat font-black text-white text-xl">3rd</div>
-                  <div className="text-white/80 text-xs font-montserrat font-semibold">Edition · 2027</div>
-                </div>
-                <div className="absolute -top-4 -right-4 rounded-2xl px-5 py-3 shadow-xl"
-                  style={{ background: '#04003D' }}>
-                  <div className="font-montserrat font-black text-orange text-xl">KSh 100K</div>
-                  <div className="text-white/60 text-xs font-montserrat font-semibold">Prize Pool</div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            OUR JOURNEY — TIMELINE
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section id="journey" className="py-24" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
+        {/* ═══════════════════════════════════════════════════════════════
+            3. EXPO 2027 — THE MAIN EVENT
+        ═══════════════════════════════════════════════════════════════ */}
+        <section id="expo2027" className="py-20 sm:py-24 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16" data-aos="fade-up">
-              <SectionBadge text="Our Journey" icon="fa-road" />
-              <h2 className="font-montserrat font-black text-white text-3xl md:text-4xl mb-4">Growing Beyond Ideas</h2>
-              <p className="text-white/60 text-base max-w-2xl mx-auto leading-relaxed">
-                Three editions. Three chapters of a story about faith, entrepreneurship, and the next generation of business leaders.
-              </p>
-            </div>
-
-            {/* Timeline */}
-            <div className="relative">
-              {/* Vertical line */}
-              <div className="hidden lg:block absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-px"
-                style={{ background: 'rgba(255,151,0,0.2)' }} />
-
-              {/* Edition 1 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center mb-20" data-aos="fade-up">
-                <div className="lg:text-right order-2 lg:order-1">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-orange text-xs font-montserrat font-bold uppercase tracking-wider mb-3"
-                    style={{ background: 'rgba(255,151,0,0.12)', border: '1px solid rgba(255,151,0,0.2)' }}>
-                    1st Edition · 9 March 2025
-                  </div>
-                  <h3 className="font-montserrat font-black text-white text-2xl mb-3">Laying the Foundation</h3>
-                  <p className="text-white/60 text-sm leading-relaxed mb-4">
-                    The inaugural Business Exposition established a platform for bringing faith and entrepreneurship together. Held at Ecop Hall, it introduced students to foundational business topics — networking, funding, and the basics of entrepreneurship — challenging the traditional mindset that the church's role is limited to spiritual activities.
-                  </p>
-                  <div className="flex flex-wrap gap-3 lg:justify-end">
-                    {[
-                      { icon: 'fa-users', label: 'High Turnout' },
-                      { icon: 'fa-microphone', label: '3 Speakers' },
-                      { icon: 'fa-store', label: 'Student Booths' },
-                      { icon: 'fa-briefcase', label: 'Job Secured' },
-                    ].map((s, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-montserrat font-semibold text-white/70"
-                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <i className={`fas ${s.icon} text-orange text-xs`} />
-                        {s.label}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-white/40 text-xs font-montserrat font-semibold uppercase tracking-wider mb-2">Featured Speakers</p>
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
-                      {EDITION1_SPEAKERS.map((s, i) => (
-                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <i className={`fas ${s.icon} text-orange text-xs`} />
-                          <div>
-                            <div className="text-white text-xs font-montserrat font-bold">{s.name}</div>
-                            <div className="text-white/40 text-xs">{s.topic}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                {/* Timeline dot */}
-                <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 w-10 h-10 rounded-full items-center justify-center z-10"
-                  style={{ background: '#FF9700', top: '2rem' }}>
-                  <span className="font-montserrat font-black text-white text-sm">1</span>
-                </div>
-                <div className="order-1 lg:order-2">
-                  <div className="rounded-2xl overflow-hidden shadow-2xl"
-                    style={{ border: '1px solid rgba(255,151,0,0.2)' }}>
-                    <img src="/assets/images/expo/IMG_0703.jpg" alt="1st Edition"
-                      className="w-full h-64 object-cover"
-                      onError={e => { e.target.style.background = '#0a0060'; e.target.style.height = '256px' }} />
-                    <div className="p-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                      <p className="text-white/50 text-xs font-montserrat font-semibold">
-                        Theme: <span className="text-orange">"Networking and Businesses"</span> · Ecop Hall, MUT
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Edition 2 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start mb-20" data-aos="fade-up">
-                <div className="order-1">
-                  <div className="rounded-2xl overflow-hidden shadow-2xl"
-                    style={{ border: '1px solid rgba(255,151,0,0.2)' }}>
-                    {/* Photo grid */}
-                    <div className="grid grid-cols-3 gap-1 p-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                      {[
-                        '/assets/images/expo/IMG_0616.jpg',
-                        '/assets/images/expo/IMG_0628.jpg',
-                        '/assets/images/expo/IMG_0777.jpg',
-                        '/assets/images/expo/IMG_0834.jpg',
-                        '/assets/images/expo/IMG_0715.jpg',
-                        '/assets/images/expo/IMG_0751.jpg',
-                      ].map((src, i) => (
-                        <img key={i} src={src} alt={`2nd Edition moment ${i + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                          onError={e => { e.target.style.display = 'none' }} />
-                      ))}
-                    </div>
-                    <div className="p-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                      <p className="text-white/50 text-xs font-montserrat font-semibold">
-                        14 March 2026 · Assembly Hall, MUT · Livestreamed
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                {/* Timeline dot */}
-                <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 w-10 h-10 rounded-full items-center justify-center z-10"
-                  style={{ background: '#FF9700', top: '50%' }}>
-                  <span className="font-montserrat font-black text-white text-sm">2</span>
-                </div>
-                <div className="order-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-orange text-xs font-montserrat font-bold uppercase tracking-wider mb-3"
-                    style={{ background: 'rgba(255,151,0,0.12)', border: '1px solid rgba(255,151,0,0.2)' }}>
-                    2nd Edition · 14 March 2026
-                  </div>
-                  <h3 className="font-montserrat font-black text-white text-2xl mb-3">Scaling the Vision</h3>
-                  <p className="text-white/60 text-sm leading-relaxed mb-4">
-                    The 2nd Business Exposition was held at the Assembly Hall of Murang'a University of Technology. The event welcomed 120 attendees and featured four business leaders who shared their experiences and insights. It also included a student pitch showcase and was livestreamed — creating opportunities for students to present their ideas, learn from experienced entrepreneurs, and build valuable connections.
-                  </p>
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <StatPill icon="fa-users" value="120+" label="Attendees" />
-                    <StatPill icon="fa-microphone" value="4" label="Speakers" />
-                    <StatPill icon="fa-video" value="Live" label="Streamed" />
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-white/40 text-xs font-montserrat font-semibold uppercase tracking-wider mb-2">Featured Speakers</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {EDITION2_SPEAKERS.map((s, i) => (
-                        <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ background: 'rgba(255,151,0,0.15)' }}>
-                            <i className={`fas ${s.icon} text-orange text-xs`} />
-                          </div>
-                          <div>
-                            <div className="text-white text-xs font-montserrat font-bold leading-tight">{s.name}</div>
-                            <div className="text-white/40 text-xs">{s.company}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Edition 3 — Coming */}
-              <div className="text-center" data-aos="fade-up">
-                <div className="inline-block">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                    style={{ background: '#FF9700', boxShadow: '0 0 40px rgba(255,151,0,0.4)' }}>
-                    <span className="font-montserrat font-black text-white text-xl">3</span>
-                  </div>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-orange text-sm font-montserrat font-bold"
-                    style={{ background: 'rgba(255,151,0,0.12)', border: '1px solid rgba(255,151,0,0.3)' }}>
-                    <i className="fas fa-star animate-pulse" />
-                    3rd Edition · 13 March 2027 · Coming Soon
-                  </div>
-                  <p className="text-white/50 text-sm mt-3 font-montserrat">
-                    Each edition builds on the previous one. The journey continues.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            PHOTO GALLERY — 2nd Edition
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12" data-aos="fade-up">
-              <SectionBadge text="2nd Edition Gallery" icon="fa-images" />
-              <h2 className="font-montserrat font-black text-navy text-3xl md:text-4xl mb-3">Moments from Expo 2026</h2>
-              <p className="text-gray-500 text-base max-w-xl mx-auto">
-                120 attendees. 4 speakers. 1 unforgettable day of entrepreneurship, learning, and connection.
-              </p>
-            </div>
-            <GalleryGrid photos={EDITION2_PHOTOS} />
-          </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            EXPO 2027 — WHAT TO EXPECT
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section id="expo2027" className="py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16" data-aos="fade-up">
+            <div className="text-center mb-12">
               <SectionBadge text="Business Expo 2027" icon="fa-rocket" />
-              <h2 className="font-montserrat font-black text-navy text-3xl md:text-4xl mb-4">
+              <h2 className="font-montserrat font-black text-navy text-3xl sm:text-4xl mb-4">
                 Beyond Ideas: Blueprint of a CEO
               </h2>
               <p className="text-gray-500 text-base max-w-2xl mx-auto leading-relaxed">
-                The 3rd MUTCU Business Exposition is designed to help students move from having ideas to building businesses. Under the theme <strong className="text-navy">Beyond Ideas: Blueprint of a CEO</strong>, we will explore what it takes to think like a leader, develop practical business skills, make sound decisions, and create meaningful impact.
+                The 3rd MUTCU Business Exposition is designed to help students move from having ideas to building businesses. We will explore what it takes to think like a leader, develop practical business skills, make sound decisions, and create meaningful impact.
               </p>
             </div>
 
             {/* Event details card */}
-            <div className="rounded-3xl p-8 md:p-12 mb-16 text-white"
-              style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)', border: '1px solid rgba(255,151,0,0.15)' }}
-              data-aos="fade-up">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="rounded-3xl p-6 sm:p-10 mb-14 text-white"
+              style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)', border: '1px solid rgba(255,151,0,0.15)' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
                 {[
                   { icon: 'fa-calendar-alt', label: 'Date', value: 'Saturday, 13 March 2027' },
                   { icon: 'fa-clock', label: 'Time', value: '8:00 AM – 4:00 PM' },
                   { icon: 'fa-map-marker-alt', label: 'Venue', value: "Murang'a University of Technology" },
                   { icon: 'fa-users', label: 'Organiser', value: 'MUTCU Resource Mobilization Committee' },
                   { icon: 'fa-lightbulb', label: 'Theme', value: 'Beyond Ideas: Blueprint of a CEO' },
-                  { icon: 'fa-trophy', label: 'Prize Pool', value: 'KSh 100,000 (Pitch Competition)' },
+                  { icon: 'fa-trophy', label: 'Prize Pool', value: 'KSh 100,000 — Pitch Competition' },
                 ].map((d, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -671,262 +745,733 @@ export default function BusinessExpoPage() {
                   </div>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-4">
-                <a href="https://forms.gle/mutcu-expo-register" target="_blank" rel="noopener noreferrer"
+              <div className="flex flex-wrap gap-3">
+                <button onClick={() => scrollTo('register')}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-0.5"
                   style={{ background: '#FF9700' }}>
-                  Register to Attend <i className="fas fa-arrow-right" />
-                </a>
-                <a href="#founders-arena" onClick={e => { e.preventDefault(); scrollTo('founders-arena') }}
+                  Register Free <i className="fas fa-arrow-right" />
+                </button>
+                <button onClick={() => scrollTo('founders-arena')}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-0.5"
                   style={{ border: '1.5px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.06)' }}>
-                  Begin Founder's Arena <i className="fas fa-fire" />
-                </a>
+                  Apply to Pitch <i className="fas fa-fire" />
+                </button>
               </div>
             </div>
 
-            {/* What to expect grid */}
-            <div className="text-center mb-10" data-aos="fade-up">
+            {/* What to expect */}
+            <div className="text-center mb-8">
               <h3 className="font-montserrat font-black text-navy text-2xl mb-2">What to Expect</h3>
               <p className="text-gray-500 text-sm">A full day packed with sessions designed to equip, inspire, and connect.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {WHAT_TO_EXPECT.map((item, i) => (
-                <div key={i} className="p-6 rounded-2xl border border-gray-100 hover:border-orange/30 hover:shadow-lg transition-all duration-300 group"
-                  data-aos="zoom-in" data-aos-delay={i * 60}>
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110"
+                <div key={i} className="p-5 rounded-2xl border border-gray-100 hover:border-orange/30 hover:shadow-lg transition-all duration-300 group">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300"
                     style={{ background: 'rgba(255,151,0,0.1)' }}>
-                    <i className={`fas ${item.icon} text-orange text-xl`} />
+                    <i className={`fas ${item.icon} text-orange text-lg`} />
                   </div>
-                  <h4 className="font-montserrat font-bold text-navy text-base mb-2">{item.title}</h4>
-                  <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+                  <h4 className="font-montserrat font-bold text-navy text-sm mb-1.5">{item.title}</h4>
+                  <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            FOUNDER'S ARENA
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section id="founders-arena" className="py-24" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
+        {/* ═══════════════════════════════════════════════════════════════
+            4. FOUNDER'S ARENA
+        ═══════════════════════════════════════════════════════════════ */}
+        <section id="founders-arena" className="py-20 sm:py-24"
+          style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16" data-aos="fade-up">
+            <div className="text-center mb-14">
               <SectionBadge text="Founder's Arena" icon="fa-fire-alt" />
-              <h2 className="font-montserrat font-black text-white text-3xl md:text-4xl mb-4">From Idea to the Pitch Stage</h2>
+              <h2 className="font-montserrat font-black text-white text-3xl sm:text-4xl mb-4">From Idea to the Pitch Stage</h2>
               <p className="text-white/60 text-base max-w-2xl mx-auto leading-relaxed">
-                Every business starts with an idea. But turning that idea into a business takes more than inspiration — it takes research, critical thinking, preparation, and the ability to communicate your vision. Founder's Arena is the structured journey every student who wishes to pitch must go through.
+                Every business starts with an idea. But turning that idea into a business takes more than inspiration. Founder's Arena is the structured journey every student who wishes to pitch must go through.
               </p>
             </div>
 
-            {/* Stage selector */}
-            <div className="flex flex-wrap justify-center gap-3 mb-12">
-              {STAGES.map((s, i) => (
-                <button key={i} onClick={() => setActiveStage(i)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-montserrat font-bold text-sm transition-all duration-300"
-                  style={{
-                    background: activeStage === i ? '#FF9700' : 'rgba(255,255,255,0.06)',
-                    border: activeStage === i ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                    color: activeStage === i ? 'white' : 'rgba(255,255,255,0.6)',
-                  }}>
-                  <span className="font-black">{s.num}</span>
-                  <span className="hidden sm:inline">{s.label}</span>
-                </button>
-              ))}
-            </div>
+            {/* Progress bar + stage tabs */}
+            <div className="max-w-3xl mx-auto mb-10">
+              {/* Progress track */}
+              <div className="flex items-center mb-6">
+                {STAGES.map((s, i) => (
+                  <div key={i} className="flex items-center flex-1">
+                    <button onClick={() => setActiveStage(i)}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-montserrat font-black text-sm transition-all duration-300 flex-shrink-0 ${
+                        i === activeStage
+                          ? 'text-white scale-110'
+                          : i < activeStage
+                            ? 'text-white'
+                            : 'text-white/40'
+                      }`}
+                      style={{
+                        background: i <= activeStage ? '#FF9700' : 'rgba(255,255,255,0.1)',
+                        border: i === activeStage ? '3px solid rgba(255,255,255,0.4)' : 'none',
+                      }}>
+                      {i < activeStage ? <i className="fas fa-check text-xs" /> : s.num}
+                    </button>
+                    {i < STAGES.length - 1 && (
+                      <div className="flex-1 h-0.5 mx-1 transition-all duration-500"
+                        style={{ background: i < activeStage ? '#FF9700' : 'rgba(255,255,255,0.1)' }} />
+                    )}
+                  </div>
+                ))}
+              </div>
 
-            {/* Active stage detail */}
-            <div className="max-w-3xl mx-auto mb-16" data-aos="fade-up">
-              <div className="rounded-3xl p-8 md:p-10"
+              {/* Stage labels */}
+              <div className="grid grid-cols-4 gap-1 mb-8">
+                {STAGES.map((s, i) => (
+                  <button key={i} onClick={() => setActiveStage(i)}
+                    className={`text-center text-xs font-montserrat font-bold transition-colors duration-200 ${
+                      i === activeStage ? 'text-orange' : 'text-white/40 hover:text-white/70'
+                    }`}>
+                    {s.shortLabel}
+                  </button>
+                ))}
+              </div>
+
+              {/* Active stage detail */}
+              <div className="rounded-3xl p-6 sm:p-8 transition-all duration-300"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,151,0,0.2)' }}>
-                <div className="flex items-start gap-5">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0"
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
                     style={{ background: 'rgba(255,151,0,0.15)', border: '1px solid rgba(255,151,0,0.3)' }}>
                     <i className={`fas ${STAGES[activeStage].icon} text-orange text-2xl`} />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-montserrat font-black text-orange text-sm">Stage {STAGES[activeStage].num}</span>
-                      <div className="h-px flex-1" style={{ background: 'rgba(255,151,0,0.2)' }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-orange font-montserrat font-black text-xs">Stage {STAGES[activeStage].num}</span>
                     </div>
-                    <h3 className="font-montserrat font-black text-white text-2xl mb-1">{STAGES[activeStage].label}</h3>
-                    <p className="text-orange font-montserrat font-semibold text-sm mb-4 italic">{STAGES[activeStage].tagline}</p>
-                    <p className="text-white/65 text-sm leading-relaxed mb-6">{STAGES[activeStage].desc}</p>
-                    <a href="https://forms.gle/mutcu-founders-arena" target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-0.5"
-                      style={{ background: '#FF9700' }}>
-                      {STAGES[activeStage].action} <i className="fas fa-arrow-right" />
-                    </a>
+                    <h3 className="font-montserrat font-black text-white text-xl sm:text-2xl mb-1">{STAGES[activeStage].label}</h3>
+                    <p className="text-orange font-montserrat font-semibold text-sm mb-3 italic">{STAGES[activeStage].tagline}</p>
+                    <p className="text-white/65 text-sm leading-relaxed">{STAGES[activeStage].desc}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Roadmap visual */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {STAGES.map((s, i) => (
-                <div key={i}
-                  className="relative p-5 rounded-2xl cursor-pointer transition-all duration-300"
-                  style={{
-                    background: activeStage === i ? 'rgba(255,151,0,0.12)' : 'rgba(255,255,255,0.04)',
-                    border: activeStage === i ? '1px solid rgba(255,151,0,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                  }}
-                  onClick={() => setActiveStage(i)}
-                  data-aos="fade-up" data-aos-delay={i * 80}>
-                  {/* Connector arrow */}
-                  {i < STAGES.length - 1 && (
-                    <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
-                      <i className="fas fa-chevron-right text-orange/40 text-xs" />
-                    </div>
-                  )}
-                  <div className="font-montserrat font-black text-orange/40 text-4xl mb-3">{s.num}</div>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3"
-                    style={{ background: activeStage === i ? 'rgba(255,151,0,0.2)' : 'rgba(255,255,255,0.06)' }}>
-                    <i className={`fas ${s.icon} text-orange text-sm`} />
-                  </div>
-                  <h4 className="font-montserrat font-bold text-white text-sm mb-1">{s.label}</h4>
-                  <p className="text-white/40 text-xs leading-relaxed">{s.tagline}</p>
+            {/* Prize pool highlight */}
+            <div className="max-w-3xl mx-auto mb-10">
+              <div className="rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left"
+                style={{ background: 'rgba(255,151,0,0.1)', border: '1px solid rgba(255,151,0,0.25)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: '#FF9700' }}>
+                  <i className="fas fa-trophy text-white text-2xl" />
                 </div>
-              ))}
+                <div className="flex-1">
+                  <div className="font-montserrat font-black text-white text-xl">KSh 100,000 Prize Pool</div>
+                  <div className="text-white/60 text-sm">Compete, pitch your idea, and win a share of the biggest prize pool in MUTCU Expo history.</div>
+                </div>
+                <button onClick={() => scrollTo('register')}
+                  className="px-5 py-2.5 rounded-xl font-montserrat font-bold text-white text-sm whitespace-nowrap transition-all hover:-translate-y-0.5"
+                  style={{ background: '#FF9700' }}>
+                  Apply to Pitch →
+                </button>
+              </div>
             </div>
 
             {/* CTA */}
-            <div className="text-center mt-14" data-aos="fade-up">
-              <p className="text-white/50 text-sm font-montserrat mb-2">
-                You do not have to have everything figured out to begin.
-              </p>
-              <p className="text-white font-montserrat font-bold text-lg mb-6">
-                Your Idea. Your Journey. Your Next Step.
-              </p>
-              <a href="https://forms.gle/mutcu-founders-arena" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1 hover:shadow-2xl"
+            <div className="text-center">
+              <p className="text-white/50 text-sm font-montserrat mb-1">You don't have to have everything figured out to begin.</p>
+              <p className="text-white font-montserrat font-bold text-lg mb-5">Your Idea. Your Journey. Your Next Step.</p>
+              <button onClick={() => { setActiveStage(0); scrollTo('register') }}
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
                 style={{ background: '#FF9700', boxShadow: '0 4px 24px rgba(255,151,0,0.3)' }}>
                 Apply to Founder's Arena <i className="fas fa-fire" />
-              </a>
+              </button>
             </div>
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            PARTNERS & SPONSORS
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section id="partners" className="py-24 bg-white">
+        {/* ═══════════════════════════════════════════════════════════════
+            5. OUR JOURNEY — TIMELINE
+        ═══════════════════════════════════════════════════════════════ */}
+        <section id="journey" className="py-20 sm:py-24 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <div data-aos="fade-right">
-                <SectionBadge text="Partners & Sponsors" icon="fa-handshake" />
-                <h2 className="font-montserrat font-black text-navy text-3xl md:text-4xl leading-tight mb-4">
-                  Partner With Us
-                </h2>
-                <div className="h-1 w-12 rounded-full mb-6" style={{ background: '#FF9700' }} />
-                <p className="text-gray-600 text-base leading-relaxed mb-6">
-                  The MUTCU Business Exposition brings together students, entrepreneurs, and business leaders to support the growth of student entrepreneurship. We welcome partnerships with organisations and individuals who share our commitment to equipping the next generation of business leaders.
-                </p>
-                <p className="text-gray-600 text-base leading-relaxed mb-8">
-                  Together, we can help students move beyond ideas and build businesses with purpose.
-                </p>
-                <div className="space-y-3 mb-8">
-                  {[
-                    { icon: 'fa-coins', text: 'Financial sponsorship' },
-                    { icon: 'fa-user-tie', text: 'Mentorship and professional expertise' },
-                    { icon: 'fa-box-open', text: 'Goods and services' },
-                    { icon: 'fa-network-wired', text: 'Business networking and industry connections' },
-                    { icon: 'fa-handshake', text: 'Other relevant partnerships that support student entrepreneurship' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(255,151,0,0.1)' }}>
-                        <i className={`fas ${item.icon} text-orange text-sm`} />
-                      </div>
-                      <span className="text-gray-600 text-sm">{item.text}</span>
+            <div className="text-center mb-14">
+              <SectionBadge text="Our Journey" icon="fa-road" />
+              <h2 className="font-montserrat font-black text-navy text-3xl sm:text-4xl mb-4">
+                Three Editions. One Growing Story.
+              </h2>
+              <p className="text-gray-500 text-base max-w-2xl mx-auto leading-relaxed">
+                From a bold first step to a growing annual event — each edition builds on the last.
+              </p>
+            </div>
+
+            {/* Edition cards — vertical stack on mobile, side-by-side on desktop */}
+            <div className="space-y-10">
+
+              {/* Edition 1 */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+                <div className="lg:col-span-2">
+                  <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+                    <div className="grid grid-cols-3 gap-1 p-1 bg-gray-50">
+                      {EDITION1_PHOTOS.map((p, i) => (
+                        <img key={i} src={p.src} alt={p.alt}
+                          className="w-full h-28 sm:h-32 object-cover rounded-lg"
+                          loading="lazy"
+                          onError={e => { e.target.style.display = 'none' }} />
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <div className="p-5 rounded-2xl" style={{ background: 'rgba(4,0,61,0.04)', border: '1px solid rgba(4,0,61,0.08)' }}>
-                  <p className="font-montserrat font-bold text-navy text-sm mb-3">Interested in Partnering With Us?</p>
-                  <div className="flex flex-col gap-2 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <i className="fas fa-envelope text-orange w-4" />
-                      <a href="mailto:mutcunion@gmail.com" className="hover:text-orange transition-colors">mutcunion@gmail.com</a>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <i className="fas fa-phone text-orange w-4" />
-                      <a href="tel:+254757930723" className="hover:text-orange transition-colors">+254 757 930723</a>
+                    <div className="px-4 py-3 bg-navy">
+                      <p className="text-white/60 text-xs font-montserrat font-semibold">
+                        Theme: <span className="text-orange">"Networking and Businesses"</span>
+                      </p>
+                      <p className="text-white/40 text-xs font-montserrat mt-0.5">9 March 2025 · Ecop Hall, MUT</p>
                     </div>
                   </div>
-                  <a href="mailto:mutcunion@gmail.com?subject=Business Expo 2027 Partnership"
-                    className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-0.5"
-                    style={{ background: '#FF9700' }}>
-                    Discuss a Partnership <i className="fas fa-arrow-right" />
-                  </a>
+                </div>
+                <div className="lg:col-span-3">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-orange text-xs font-montserrat font-bold uppercase tracking-wider mb-3"
+                    style={{ background: 'rgba(255,151,0,0.1)', border: '1px solid rgba(255,151,0,0.2)' }}>
+                    1st Edition · 9 March 2025
+                  </div>
+                  <h3 className="font-montserrat font-black text-navy text-2xl mb-3">Laying the Foundation</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                    The inaugural Business Exposition established a platform for bringing faith and entrepreneurship together at MUT. Held at Ecop Hall, it introduced students to foundational business topics — networking, funding, and the basics of entrepreneurship — challenging the traditional mindset that the church's role is limited to spiritual activities.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {[
+                      { icon: 'fa-users', label: 'High Turnout' },
+                      { icon: 'fa-microphone', label: '3 Speakers' },
+                      { icon: 'fa-store', label: 'Student Booths' },
+                      { icon: 'fa-briefcase', label: 'Job Secured' },
+                    ].map((s, i) => (
+                      <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-montserrat font-semibold text-gray-600 bg-gray-50 border border-gray-100">
+                        <i className={`fas ${s.icon} text-orange text-xs`} />
+                        {s.label}
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs font-montserrat font-bold uppercase tracking-wider mb-2">Featured Speakers</p>
+                    <div className="flex flex-wrap gap-2">
+                      {EDITION1_SPEAKERS.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100">
+                          <i className={`fas ${s.icon} text-orange text-xs`} />
+                          <div>
+                            <div className="text-navy text-xs font-montserrat font-bold">{s.name}</div>
+                            <div className="text-gray-400 text-xs">{s.topic}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Why partner */}
-              <div data-aos="fade-left">
-                <div className="rounded-3xl p-8 text-white"
-                  style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)', border: '1px solid rgba(255,151,0,0.15)' }}>
-                  <h3 className="font-montserrat font-black text-white text-xl mb-2">Why Partner with MUTCU Expo?</h3>
-                  <p className="text-white/60 text-sm mb-6 leading-relaxed">
-                    Your contribution creates real opportunities for the next generation of business leaders.
+              {/* Divider */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-gray-100" />
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-montserrat font-black flex-shrink-0"
+                  style={{ background: '#FF9700' }}>↓</div>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+
+              {/* Edition 2 */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+                <div className="lg:col-span-3 lg:order-1 order-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-orange text-xs font-montserrat font-bold uppercase tracking-wider mb-3"
+                    style={{ background: 'rgba(255,151,0,0.1)', border: '1px solid rgba(255,151,0,0.2)' }}>
+                    2nd Edition · 14 March 2026
+                  </div>
+                  <h3 className="font-montserrat font-black text-navy text-2xl mb-3">Scaling the Vision</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                    The 2nd Business Exposition was held at the Assembly Hall of MUT. The event welcomed 120 attendees and featured four business leaders. It included a student pitch showcase and was livestreamed — creating opportunities for students to present their ideas, learn from experienced entrepreneurs, and build valuable connections.
                   </p>
-                  <div className="space-y-4">
+                  {/* Stats */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
                     {[
-                      { icon: 'fa-users', title: 'Reach 120+ Students', desc: 'Direct access to motivated, entrepreneurial university students.' },
-                      { icon: 'fa-bullhorn', title: 'Brand Visibility', desc: 'Logo placement, speaking slots, and booth space at the event.' },
-                      { icon: 'fa-video', title: 'Livestream Exposure', desc: 'Reach audiences beyond the physical venue through our livestream.' },
-                      { icon: 'fa-heart', title: 'Kingdom Impact', desc: 'Invest in faith-driven entrepreneurship that transforms communities.' },
-                      { icon: 'fa-trophy', title: 'Prize Sponsorship', desc: 'Associate your brand with the KSh 100,000 pitch competition.' },
+                      { icon: 'fa-users', value: '120+', label: 'Attendees' },
+                      { icon: 'fa-microphone', value: '4', label: 'Speakers' },
+                      { icon: 'fa-video', value: 'Live', label: 'Streamed' },
+                    ].map((s, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <i className={`fas ${s.icon} text-orange text-base`} />
+                        <div className="font-montserrat font-black text-navy text-lg">{s.value}</div>
+                        <div className="text-gray-400 text-xs font-montserrat font-semibold uppercase tracking-wide">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs font-montserrat font-bold uppercase tracking-wider mb-2">Featured Speakers</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {EDITION2_SPEAKERS.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100">
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ background: `${s.color}18` }}>
+                            <i className={`fas ${s.icon} text-xs`} style={{ color: s.color }} />
+                          </div>
+                          <div>
+                            <div className="text-navy text-xs font-montserrat font-bold leading-tight">{s.name}</div>
+                            <div className="text-gray-400 text-xs">{s.company}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="lg:col-span-2 lg:order-2 order-1">
+                  <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+                    <div className="grid grid-cols-3 gap-1 p-1 bg-gray-50">
+                      {EDITION2_PHOTOS.slice(0, 6).map((p, i) => (
+                        <img key={i} src={p.src} alt={p.alt}
+                          className="w-full h-28 sm:h-32 object-cover rounded-lg"
+                          loading="lazy"
+                          onError={e => { e.target.style.display = 'none' }} />
+                      ))}
+                    </div>
+                    <div className="px-4 py-3 bg-navy">
+                      <p className="text-white/60 text-xs font-montserrat font-semibold">
+                        14 March 2026 · Assembly Hall, MUT · Livestreamed
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider → Edition 3 */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-gray-100" />
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-montserrat font-black flex-shrink-0"
+                  style={{ background: '#FF9700' }}>↓</div>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+
+              {/* Edition 3 — Coming */}
+              <div className="text-center py-6">
+                <div className="inline-flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{ background: '#FF9700', boxShadow: '0 0 40px rgba(255,151,0,0.35)' }}>
+                    <span className="font-montserrat font-black text-white text-xl">3</span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-orange text-sm font-montserrat font-bold"
+                    style={{ background: 'rgba(255,151,0,0.1)', border: '1px solid rgba(255,151,0,0.3)' }}>
+                    <i className="fas fa-star animate-pulse" />
+                    3rd Edition · 13 March 2027 · Register Now
+                  </div>
+                  <p className="text-gray-500 text-sm font-montserrat max-w-xs">
+                    Each edition builds on the previous one. The journey continues — and you can be part of it.
+                  </p>
+                  <button onClick={() => scrollTo('register')}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-0.5"
+                    style={{ background: '#FF9700' }}>
+                    Join the 3rd Edition <i className="fas fa-arrow-right" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            6. SPEAKERS SHOWCASE
+        ═══════════════════════════════════════════════════════════════ */}
+        <section className="py-20 sm:py-24"
+          style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <SectionBadge text="Speakers & Panels" icon="fa-microphone" />
+              <h2 className="font-montserrat font-black text-white text-3xl sm:text-4xl mb-4">
+                Voices That Inspire
+              </h2>
+              <p className="text-white/60 text-base max-w-xl mx-auto">
+                Every edition brings experienced entrepreneurs and business leaders to share real insights with our students.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              {/* Auto-cycling speaker photo */}
+              <div className="relative">
+                <div className="rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]"
+                  style={{ border: '1px solid rgba(255,151,0,0.2)' }}>
+                  {SPEAKER_PHOTOS.map((p, i) => (
+                    <img key={i} src={p.src} alt={p.caption}
+                      className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+                      style={{ opacity: i === activeSpeakerPhoto ? 1 : 0 }}
+                      loading="lazy"
+                      onError={e => { e.target.style.display = 'none' }} />
+                  ))}
+                  {/* Caption overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4"
+                    style={{ background: 'linear-gradient(to top, rgba(4,0,61,0.9) 0%, transparent 100%)' }}>
+                    <p className="text-white font-montserrat font-semibold text-sm">
+                      {SPEAKER_PHOTOS[activeSpeakerPhoto]?.caption}
+                    </p>
+                    <p className="text-white/50 text-xs font-montserrat">MUTCU Business Exposition 2026</p>
+                  </div>
+                </div>
+                {/* Photo dots */}
+                <div className="flex justify-center gap-2 mt-4">
+                  {SPEAKER_PHOTOS.map((_, i) => (
+                    <button key={i} onClick={() => setActiveSpeakerPhoto(i)}
+                      className="rounded-full transition-all duration-300"
+                      style={{
+                        width: i === activeSpeakerPhoto ? '24px' : '8px',
+                        height: '8px',
+                        background: i === activeSpeakerPhoto ? '#FF9700' : 'rgba(255,255,255,0.2)',
+                      }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Speaker list */}
+              <div>
+                <p className="text-white/40 text-xs font-montserrat font-bold uppercase tracking-widest mb-4">2nd Edition Speakers — 2026</p>
+                <div className="space-y-3 mb-8">
+                  {EDITION2_SPEAKERS.map((s, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 hover:bg-white/5"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: `${s.color}20`, border: `1px solid ${s.color}40` }}>
+                        <i className={`fas ${s.icon} text-lg`} style={{ color: s.color }} />
+                      </div>
+                      <div>
+                        <div className="font-montserrat font-bold text-white text-base">{s.name}</div>
+                        <div className="text-white/50 text-sm font-montserrat">{s.company}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,151,0,0.08)', border: '1px solid rgba(255,151,0,0.2)' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <i className="fas fa-star text-orange text-sm" />
+                    <span className="font-montserrat font-bold text-white text-sm">Expo 2027 Speakers</span>
+                  </div>
+                  <p className="text-white/60 text-xs leading-relaxed">
+                    Speaker announcements for the 3rd Edition are coming soon. Follow <strong className="text-white">@muranga_university_cu</strong> on Instagram for updates.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            7. GALLERY — MOMENTS FROM EXPO 2026
+        ═══════════════════════════════════════════════════════════════ */}
+        <section id="gallery" className="py-20 sm:py-24 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <SectionBadge text="Gallery" icon="fa-images" />
+              <h2 className="font-montserrat font-black text-navy text-3xl sm:text-4xl mb-3">
+                See What Expo 2026 Looked Like
+              </h2>
+              <p className="text-gray-500 text-base max-w-xl mx-auto">
+                120 attendees. 4 speakers. 1 unforgettable day of entrepreneurship, learning, and connection.
+              </p>
+            </div>
+            <PhotoGrid photos={EDITION2_PHOTOS} initialVisible={12} />
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            8. REGISTRATION FORM
+        ═══════════════════════════════════════════════════════════════ */}
+        <section id="register" className="py-20 sm:py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+
+              {/* Left — pitch */}
+              <div className="lg:sticky lg:top-28">
+                <SectionBadge text="Register Now" icon="fa-user-plus" />
+                <h2 className="font-montserrat font-black text-navy text-3xl sm:text-4xl leading-tight mb-4">
+                  Secure Your Spot at<br />
+                  <span style={{ color: '#FF9700' }}>Expo 2027</span>
+                </h2>
+                <div className="h-1 w-12 rounded-full mb-6" style={{ background: '#FF9700' }} />
+                <p className="text-gray-600 text-base leading-relaxed mb-6">
+                  Whether you're coming to learn, network, or pitch your business — register now to secure your place at the 3rd MUTCU Business Exposition.
+                </p>
+
+                <div className="space-y-4 mb-8">
+                  {[
+                    { icon: 'fa-users', title: 'Attend the Expo', desc: 'Free entry. Full day of keynotes, workshops, panels, and networking.', badge: 'Free' },
+                    { icon: 'fa-fire', title: "Founder's Arena", desc: "Apply to pitch your business idea and compete for a share of KSh 100,000.", badge: 'KSh 100K Prize' },
+                  ].map((opt, i) => (
+                    <div key={i} className="flex gap-4 p-4 rounded-2xl border border-gray-100 hover:border-orange/30 transition-all">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(255,151,0,0.1)' }}>
+                        <i className={`fas ${opt.icon} text-orange`} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-montserrat font-bold text-navy text-sm">{opt.title}</span>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-montserrat font-bold text-orange"
+                            style={{ background: 'rgba(255,151,0,0.1)' }}>{opt.badge}</span>
+                        </div>
+                        <p className="text-gray-500 text-xs leading-relaxed">{opt.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Event details reminder */}
+                <div className="p-4 rounded-2xl" style={{ background: 'rgba(4,0,61,0.04)', border: '1px solid rgba(4,0,61,0.08)' }}>
+                  <p className="font-montserrat font-bold text-navy text-xs uppercase tracking-wider mb-3">Event Details</p>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    {[
+                      { icon: 'fa-calendar-alt', text: 'Saturday, 13 March 2027' },
+                      { icon: 'fa-clock', text: '8:00 AM – 4:00 PM' },
+                      { icon: 'fa-map-marker-alt', text: "Murang'a University of Technology" },
+                      { icon: 'fa-envelope', text: 'mutcunion@gmail.com' },
+                      { icon: 'fa-phone', text: '+254 757 930723' },
+                    ].map((d, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <i className={`fas ${d.icon} text-orange w-4 text-xs`} />
+                        <span>{d.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right — form */}
+              <div className="rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100">
+                <div className="mb-6">
+                  <h3 className="font-montserrat font-black text-navy text-xl mb-1">Register for Expo 2027</h3>
+                  <p className="text-gray-500 text-sm">Fill in your details below. Takes less than 2 minutes.</p>
+                </div>
+                <RegistrationForm />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            9. PARTNERS & SPONSORS
+        ═══════════════════════════════════════════════════════════════ */}
+        <section id="partners" className="py-20 sm:py-24 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <SectionBadge text="Partners & Sponsors" icon="fa-handshake" />
+              <h2 className="font-montserrat font-black text-navy text-3xl sm:text-4xl mb-4">
+                Help Us Equip the Next Generation
+              </h2>
+              <p className="text-gray-500 text-base max-w-2xl mx-auto leading-relaxed">
+                The MUTCU Business Exposition brings together students, entrepreneurs, and business leaders to support the growth of student entrepreneurship. We welcome partnerships with organisations and individuals who share our commitment.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+              {/* Past partner + ways to support */}
+              <div>
+                {/* Past partner */}
+                <div className="p-5 rounded-2xl border border-gray-100 mb-6">
+                  <p className="text-gray-400 text-xs font-montserrat font-bold uppercase tracking-wider mb-3">Past Partner</p>
+                  <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(255,151,0,0.1)' }}>
+                      <i className="fas fa-building text-orange text-xl" />
+                    </div>
+                    <div>
+                      <div className="font-montserrat font-bold text-navy text-base">AMICA</div>
+                      <div className="text-gray-500 text-xs">Capital Acquisition Partner — 1st Edition 2025</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ways to support */}
+                <div className="p-5 rounded-2xl border border-gray-100">
+                  <p className="text-gray-400 text-xs font-montserrat font-bold uppercase tracking-wider mb-4">Ways to Support</p>
+                  <div className="space-y-3">
+                    {[
+                      { icon: 'fa-coins', title: 'Financial Sponsorship', desc: 'Fund the event, prize pool, or specific sessions.' },
+                      { icon: 'fa-user-tie', title: 'Mentorship & Expertise', desc: 'Speak, mentor, or judge the pitch competition.' },
+                      { icon: 'fa-box-open', title: 'Goods & Services', desc: 'Provide materials, catering, or equipment.' },
+                      { icon: 'fa-network-wired', title: 'Business Networking', desc: 'Connect students with your industry network.' },
                     ].map((item, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 rounded-xl"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: 'rgba(255,151,0,0.15)' }}>
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                          style={{ background: 'rgba(255,151,0,0.1)' }}>
                           <i className={`fas ${item.icon} text-orange text-sm`} />
                         </div>
                         <div>
-                          <div className="font-montserrat font-bold text-white text-sm">{item.title}</div>
-                          <div className="text-white/50 text-xs mt-0.5">{item.desc}</div>
+                          <div className="font-montserrat font-bold text-navy text-sm">{item.title}</div>
+                          <div className="text-gray-500 text-xs">{item.desc}</div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
+
+              {/* Why partner + contact */}
+              <div className="rounded-3xl p-6 sm:p-8 text-white"
+                style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)', border: '1px solid rgba(255,151,0,0.15)' }}>
+                <h3 className="font-montserrat font-black text-white text-xl mb-2">Why Partner with MUTCU Expo?</h3>
+                <p className="text-white/60 text-sm mb-6 leading-relaxed">
+                  Your contribution creates real opportunities for the next generation of business leaders.
+                </p>
+                <div className="space-y-3 mb-8">
+                  {[
+                    { icon: 'fa-users', title: '120+ Students', desc: 'Direct access to motivated, entrepreneurial university students.' },
+                    { icon: 'fa-bullhorn', title: 'Brand Visibility', desc: 'Logo placement, speaking slots, and booth space at the event.' },
+                    { icon: 'fa-video', title: 'Livestream Exposure', desc: 'Reach audiences beyond the physical venue.' },
+                    { icon: 'fa-heart', title: 'Kingdom Impact', desc: 'Invest in faith-driven entrepreneurship that transforms communities.' },
+                    { icon: 'fa-trophy', title: 'Prize Sponsorship', desc: 'Associate your brand with the KSh 100,000 pitch competition.' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(255,151,0,0.15)' }}>
+                        <i className={`fas ${item.icon} text-orange text-sm`} />
+                      </div>
+                      <div>
+                        <div className="font-montserrat font-bold text-white text-sm">{item.title}</div>
+                        <div className="text-white/50 text-xs mt-0.5">{item.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="font-montserrat font-bold text-white text-sm mb-3">Interested in Partnering?</p>
+                <div className="space-y-2 mb-5">
+                  <a href="mailto:mutcunion@gmail.com?subject=Business Expo 2027 Partnership"
+                    className="flex items-center gap-2 text-sm text-white/70 hover:text-orange transition-colors">
+                    <i className="fas fa-envelope text-orange w-4" />
+                    mutcunion@gmail.com
+                  </a>
+                  <a href="tel:+254757930723"
+                    className="flex items-center gap-2 text-sm text-white/70 hover:text-orange transition-colors">
+                    <i className="fas fa-phone text-orange w-4" />
+                    +254 757 930723
+                  </a>
+                </div>
+                <a href="mailto:mutcunion@gmail.com?subject=Business Expo 2027 Partnership"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-0.5"
+                  style={{ background: '#FF9700' }}>
+                  Discuss a Partnership <i className="fas fa-arrow-right" />
+                </a>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            CONTACT
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section id="contact" className="py-20 bg-gray-50">
-          <div className="max-w-4xl mx-auto px-4 text-center" data-aos="fade-up">
-            <SectionBadge text="Get in Touch" icon="fa-envelope" />
-            <h2 className="font-montserrat font-black text-navy text-3xl md:text-4xl mb-4">Have a Question?</h2>
-            <p className="text-gray-500 text-base max-w-xl mx-auto mb-10 leading-relaxed">
-              Interested in attending, pitching, speaking, sponsoring, or partnering with us? We would love to hear from you.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-              {[
-                { icon: 'fa-envelope', label: 'Email', value: 'mutcunion@gmail.com', href: 'mailto:mutcunion@gmail.com' },
-                { icon: 'fa-phone', label: 'Phone', value: '+254 757 930723', href: 'tel:+254757930723' },
-                { icon: 'fa-globe', label: 'Website', value: 'mutcu.org', href: 'https://mutcu.org' },
-              ].map((c, i) => (
-                <a key={i} href={c.href} target={c.href.startsWith('http') ? '_blank' : undefined}
-                  rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-5 rounded-2xl bg-white border border-gray-100 hover:border-orange/30 hover:shadow-md transition-all group">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: 'rgba(255,151,0,0.1)' }}>
-                    <i className={`fas ${c.icon} text-orange`} />
-                  </div>
-                  <div className="font-montserrat font-bold text-navy text-xs uppercase tracking-wider">{c.label}</div>
-                  <div className="text-gray-500 text-sm group-hover:text-orange transition-colors">{c.value}</div>
-                </a>
-              ))}
+        {/* ═══════════════════════════════════════════════════════════════
+            10. ABOUT THE EXPO
+        ═══════════════════════════════════════════════════════════════ */}
+        <section id="about" className="py-20 sm:py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <SectionBadge text="About the Expo" icon="fa-info-circle" />
+                <h2 className="font-montserrat font-black text-navy text-3xl sm:text-4xl leading-tight mb-4">
+                  What Is the MUTCU<br />Business Exposition?
+                </h2>
+                <div className="h-1 w-12 rounded-full mb-6" style={{ background: '#FF9700' }} />
+                <p className="text-gray-600 text-base leading-relaxed mb-4">
+                  The MUTCU Business Exposition is an annual entrepreneurship event organised by the Murang'a University of Technology Christian Union (MUTCU). The Expo brings together students, entrepreneurs, business leaders, and mentors to share practical business knowledge, build networks, and explore opportunities in entrepreneurship.
+                </p>
+                <p className="text-gray-600 text-base leading-relaxed mb-6">
+                  We believe that <strong className="text-navy">faith and professional excellence go hand in hand.</strong> Through the Expo, we encourage students to build businesses with integrity, innovation, purpose, and a commitment to serving others.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                  {[
+                    { icon: 'fa-lightbulb', title: 'Ideas to Action', text: 'Turn your business idea into a real venture with structured guidance.' },
+                    { icon: 'fa-network-wired', title: 'Build Networks', text: 'Connect with entrepreneurs, mentors, and business leaders.' },
+                    { icon: 'fa-crown', title: 'Faith & Business', text: 'Integrate Christian values with entrepreneurial excellence.' },
+                    { icon: 'fa-chart-line', title: 'Grow Your Venture', text: 'Gain skills and insights to scale your existing business.' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(255,151,0,0.1)' }}>
+                        <i className={`fas ${item.icon} text-orange text-sm`} />
+                      </div>
+                      <div>
+                        <div className="font-montserrat font-bold text-navy text-xs mb-0.5">{item.title}</div>
+                        <div className="text-gray-500 text-xs leading-relaxed">{item.text}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 p-4 rounded-xl"
+                  style={{ background: 'rgba(4,0,61,0.04)', border: '1px solid rgba(4,0,61,0.08)' }}>
+                  <img src="/assets/images/FOCUS-Kenya-logo.webp" alt="FOCUS Kenya" className="h-8"
+                    onError={e => { e.target.style.display = 'none' }} />
+                  <p className="text-gray-500 text-xs leading-relaxed">
+                    Organised by <strong className="text-navy">MUTCU</strong> — a Christ-centred student fellowship at MUT, affiliated with <strong className="text-navy">FOCUS Kenya</strong>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Staggered photo collage */}
+              <div className="relative">
+                <div className="grid grid-cols-2 gap-3">
+                  <img src="/assets/images/expo/IMG_0917.jpg" alt="Expo moment"
+                    className="rounded-2xl w-full object-cover shadow-lg"
+                    style={{ height: 'clamp(160px, 20vw, 220px)' }}
+                    loading="lazy"
+                    onError={e => { e.target.style.display = 'none' }} />
+                  <img src="/assets/images/expo/IMG_0910.jpg" alt="Expo moment"
+                    className="rounded-2xl w-full object-cover shadow-lg mt-6"
+                    style={{ height: 'clamp(160px, 20vw, 220px)' }}
+                    loading="lazy"
+                    onError={e => { e.target.style.display = 'none' }} />
+                  <img src="/assets/images/expo/IMG_0777.jpg" alt="Expo moment"
+                    className="rounded-2xl w-full object-cover shadow-lg -mt-6"
+                    style={{ height: 'clamp(160px, 20vw, 220px)' }}
+                    loading="lazy"
+                    onError={e => { e.target.style.display = 'none' }} />
+                  <img src="/assets/images/expo/IMG_0834.jpg" alt="Expo moment"
+                    className="rounded-2xl w-full object-cover shadow-lg"
+                    style={{ height: 'clamp(160px, 20vw, 220px)' }}
+                    loading="lazy"
+                    onError={e => { e.target.style.display = 'none' }} />
+                </div>
+                <div className="absolute -bottom-3 -left-3 rounded-2xl px-4 py-2.5 shadow-xl"
+                  style={{ background: '#FF9700' }}>
+                  <div className="font-montserrat font-black text-white text-lg">3rd</div>
+                  <div className="text-white/80 text-xs font-montserrat font-semibold">Edition · 2027</div>
+                </div>
+                <div className="absolute -top-3 -right-3 rounded-2xl px-4 py-2.5 shadow-xl"
+                  style={{ background: '#04003D' }}>
+                  <div className="font-montserrat font-black text-orange text-lg">KSh 100K</div>
+                  <div className="text-white/60 text-xs font-montserrat font-semibold">Prize Pool</div>
+                </div>
+              </div>
             </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            11. FOOTER CTA
+        ═══════════════════════════════════════════════════════════════ */}
+        <section className="py-20 sm:py-24"
+          style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <div className="text-orange font-montserrat font-black text-xs uppercase tracking-widest mb-3">
+              MUTCU Business Exposition · 3rd Edition
+            </div>
+            <h2 className="font-montserrat font-black text-white text-3xl sm:text-5xl mb-3 leading-tight">
+              Beyond Ideas:<br />Blueprint of a CEO
+            </h2>
+            <p className="text-white/50 font-montserrat font-semibold text-base mb-8">
+              13 March 2027 · Murang'a University of Technology
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center mb-10">
+              <button onClick={() => scrollTo('register')}
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
+                style={{ background: '#FF9700', boxShadow: '0 4px 24px rgba(255,151,0,0.3)' }}>
+                Register Free <i className="fas fa-arrow-right" />
+              </button>
+              <button onClick={() => scrollTo('founders-arena')}
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
+                style={{ border: '1.5px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.06)' }}>
+                Apply to Pitch <i className="fas fa-fire" />
+              </button>
+              <a href="mailto:mutcunion@gmail.com?subject=Business Expo 2027 Partnership"
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
+                style={{ border: '1.5px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)' }}>
+                Partner With Us <i className="fas fa-handshake" />
+              </a>
+            </div>
+
             {/* Social links */}
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-3 mb-8">
               {[
                 { icon: 'fab fa-facebook-f', url: 'https://www.facebook.com/people/Muranga-University-of-Technology-Christian-Union-1/100068859581695/', label: 'Facebook' },
                 { icon: 'fab fa-instagram', url: 'https://www.instagram.com/muranga_university_cu/', label: 'Instagram' },
@@ -934,47 +1479,14 @@ export default function BusinessExpoPage() {
                 { icon: 'fab fa-youtube', url: 'https://www.youtube.com/@murangauniversityCU', label: 'YouTube' },
               ].map(s => (
                 <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" aria-label={s.label}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-all duration-200 text-sm"
-                  style={{ background: '#04003D' }}>
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all duration-200 text-sm"
+                  style={{ background: 'rgba(255,255,255,0.08)' }}>
                   <i className={s.icon} />
                 </a>
               ))}
             </div>
-          </div>
-        </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            EXPO FOOTER CTA
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section className="py-20" style={{ background: 'linear-gradient(135deg, #04003D 0%, #0a0060 100%)' }}>
-          <div className="max-w-4xl mx-auto px-4 text-center" data-aos="fade-up">
-            <div className="text-orange font-montserrat font-black text-sm uppercase tracking-widest mb-3">
-              MUTCU Business Exposition · 3rd Edition
-            </div>
-            <h2 className="font-montserrat font-black text-white text-3xl md:text-5xl mb-3 leading-tight">
-              Beyond Ideas:<br />Blueprint of a CEO
-            </h2>
-            <p className="text-white/50 font-montserrat font-semibold text-base mb-8">
-              13 March 2027 · Murang'a University of Technology
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <a href="https://forms.gle/mutcu-expo-register" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-8 py-4 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
-                style={{ background: '#FF9700', boxShadow: '0 4px 24px rgba(255,151,0,0.3)' }}>
-                Register to Attend <i className="fas fa-arrow-right" />
-              </a>
-              <a href="https://forms.gle/mutcu-founders-arena" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-8 py-4 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
-                style={{ border: '1.5px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.06)' }}>
-                Pitch Your Business <i className="fas fa-fire" />
-              </a>
-              <a href="mailto:mutcunion@gmail.com?subject=Business Expo 2027 Partnership"
-                className="flex items-center gap-2 px-8 py-4 rounded-xl font-montserrat font-bold text-white text-sm transition-all hover:-translate-y-1"
-                style={{ border: '1.5px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)' }}>
-                Partner With Us <i className="fas fa-handshake" />
-              </a>
-            </div>
-            <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-white/30 text-xs font-montserrat">
+            <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-white/30 text-xs font-montserrat">
               <span>© 2027 Murang'a University of Technology Christian Union. All rights reserved.</span>
               <Link to="/" className="hover:text-orange transition-colors flex items-center gap-1">
                 <i className="fas fa-arrow-left text-xs" /> Back to MUTCU Website
@@ -984,30 +1496,6 @@ export default function BusinessExpoPage() {
         </section>
 
       </div>
-
-      {/* Inline styles for expo-specific classes */}
-      <style>{`
-        .btn-outline-expo {
-          display: inline-flex;
-          align-items: center;
-          padding: 0.625rem 1.5rem;
-          border-radius: 8px;
-          font-family: 'Montserrat', sans-serif;
-          font-weight: 600;
-          font-size: 0.875rem;
-          border: 2px solid #04003D;
-          color: #04003D;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          text-decoration: none;
-          background: transparent;
-        }
-        .btn-outline-expo:hover {
-          background: #04003D;
-          color: white;
-          transform: translateY(-1px);
-        }
-      `}</style>
     </>
   )
 }

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Calendar, FileText, Image, BookOpen,
   Mail, Heart, Users, LogOut, Globe, ChevronRight,
-  Newspaper, BarChart2, Settings, Home, Church
+  Newspaper, BarChart2, Settings, Home, Church, Briefcase
 } from 'lucide-react'
 
 const NAV_SECTIONS = [
@@ -38,6 +38,12 @@ const NAV_SECTIONS = [
       { path: '/admin/contacts', label: 'Messages', icon: Mail },
       { path: '/admin/prayer', label: 'Prayer Requests', icon: Heart },
       { path: '/admin/newsletter', label: 'Newsletter', icon: Newspaper },
+    ]
+  },
+  {
+    label: 'Events',
+    items: [
+      { path: '/admin/expo-registrations', label: 'Expo Registrations', icon: Briefcase },
     ]
   },
   {

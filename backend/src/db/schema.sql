@@ -164,6 +164,24 @@ INSERT INTO website_ministries (name, slug, description, icon, display_order) VA
   ('Resource Mobilization (RMC)', 'rmc', 'Stewardship and mobilization of financial/material resources to support ministry work and programs.', 'fa-donate', 10)
 ON CONFLICT (slug) DO NOTHING;
 
+-- ─── Website Expo Registrations ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS expo_registrations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  full_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(50) NOT NULL,
+  participation_type VARCHAR(20) NOT NULL, -- attendee | pitcher
+  course VARCHAR(255),
+  year_of_study VARCHAR(20),
+  business_name VARCHAR(255),
+  business_stage VARCHAR(100), -- idea | early | growing | established
+  how_heard VARCHAR(100),
+  message TEXT,
+  status VARCHAR(30) DEFAULT 'confirmed', -- confirmed | waitlisted | cancelled | attended
+  registered_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ─── Enable RLS (public read for most tables) ─────────────────────────────────
 ALTER TABLE website_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE website_blogs ENABLE ROW LEVEL SECURITY;
@@ -187,3 +205,6 @@ CREATE POLICY "Service role full access" ON website_contacts FOR ALL USING (true
 CREATE POLICY "Service role full access" ON website_ministries FOR ALL USING (true);
 CREATE POLICY "Service role full access" ON website_leadership FOR ALL USING (true);
 CREATE POLICY "Service role full access" ON website_testimonials FOR ALL USING (true);
+
+ALTER TABLE expo_registrations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON expo_registrations FOR ALL USING (true);

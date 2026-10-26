@@ -142,6 +142,19 @@ export const aiAPI = {
   getStatus: () => api.get('/ai/status'),
 }
 
+export const expoAPI = {
+  register: (data) => api.post('/expo/register', data),
+  getRegistrations: (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return api.get(`/expo/registrations${q ? `?${q}` : ''}`)
+  },
+  getStats: () => api.get('/expo/stats'),
+  updateStatus: (id, status) => api.put(`/expo/registrations/${id}/status`, { status }),
+  delete: (id) => api.delete(`/expo/registrations/${id}`),
+  exportExcel: (type) => `${BASE_URL}/expo/export/excel${type ? `?type=${type}` : ''}`,
+  exportPdf: (type) => `${BASE_URL}/expo/export/pdf${type ? `?type=${type}` : ''}`,
+}
+
 export const adminAPI = {
   login: (email, password) => api.post('/admin/login', { email, password }),
   me: () => api.get('/admin/me'),

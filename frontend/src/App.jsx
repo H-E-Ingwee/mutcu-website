@@ -67,6 +67,7 @@ import AdminMinistries from './pages/admin/AdminMinistries'
 import AdminContacts from './pages/admin/AdminContacts'
 import AdminPrayer from './pages/admin/AdminPrayer'
 import AdminNewsletter from './pages/admin/AdminNewsletter'
+import AdminExpoRegistrations from './pages/admin/AdminExpoRegistrations'
 
 export default function App() {
   return (
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="contacts" element={<AdminContacts />} />
           <Route path="prayer" element={<AdminPrayer />} />
           <Route path="newsletter" element={<AdminNewsletter />} />
+          <Route path="expo-registrations" element={<AdminExpoRegistrations />} />
         </Route>
 
         {/* Public Site */}
