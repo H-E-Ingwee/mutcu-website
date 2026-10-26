@@ -31,10 +31,11 @@ const NAV_LINKS = [
   },
   { path: '/gallery', label: 'Gallery' },
   { path: '/contact', label: 'Contact' },
+  { path: '/business-expo', label: '🏆 Expo 2027', highlight: true },
 ]
 
 // Pages where hero is dark (navbar can be transparent)
-const DARK_HERO_PAGES = ['/', '/about', '/ministries', '/events', '/contact', '/gallery', '/resources', '/blogs', '/register']
+const DARK_HERO_PAGES = ['/', '/about', '/ministries', '/events', '/contact', '/gallery', '/resources', '/blogs', '/register', '/business-expo']
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -129,6 +130,20 @@ export default function Navbar() {
                       ))}
                     </div>
                   </div>
+                ) : link.highlight ? (
+                  <NavLink
+                    key={link.path}
+                    to={link.path}
+                    className={({ isActive }) =>
+                      `px-3 py-2 rounded-lg text-sm font-montserrat font-bold transition-all duration-200 ${
+                        isActive
+                          ? 'bg-orange text-white'
+                          : 'bg-orange/20 text-orange hover:bg-orange hover:text-white border border-orange/40'
+                      }`
+                    }
+                  >
+                    {link.label}
+                  </NavLink>
                 ) : (
                   <NavLink
                     key={link.path}
@@ -202,7 +217,19 @@ export default function Navbar() {
         {/* Links */}
         <nav className="p-4 space-y-1">
           {NAV_LINKS.map(link => (
-            link.dropdown ? (
+            link.highlight ? (
+              <NavLink
+                key={link.path}
+                to={link.path}
+                className={({ isActive }) =>
+                  `block px-4 py-3 rounded-xl text-sm font-montserrat font-bold transition-all ${
+                    isActive ? 'bg-orange text-white' : 'bg-orange/15 text-orange border border-orange/30'
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ) : link.dropdown ? (
               <div key={link.path}>
                 <button
                   onClick={() => setActiveDropdown(activeDropdown === link.path ? null : link.path)}

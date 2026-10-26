@@ -20,6 +20,7 @@ const QUICK_LINKS = [
   { path: '/resources', label: 'Resources' },
   { path: '/contact', label: 'Contact Us' },
   { path: '/register', label: 'Join MUTCU' },
+  { path: '/business-expo', label: '🏆 Business Expo 2027' },
 ]
 
 const MINISTRY_LINKS = [
