@@ -519,8 +519,8 @@ export default function BusinessExpoPage() {
 
             {/* ── Improved hero caption ── */}
             <p className="text-white/75 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed mb-8 font-lato">
-              You have the idea. Now get the blueprint. One day. Real mentors. Real pitches. Real prizes.<br className="hidden sm:block" />
-              <span className="text-white/60">This is where student founders are made.</span>
+              You have the idea but you may now need to get the blueprint. This day offers you that opporutnity as we get to see what the path of a CEO looks like.<br className="hidden sm:block" />
+              <span className="text-white/60">This is where student kingdom entrepreneurers are made.</span>
             </p>
 
             <div className="flex flex-wrap justify-center gap-3 sm:gap-5 mb-8 text-xs sm:text-sm">
@@ -633,7 +633,7 @@ export default function BusinessExpoPage() {
                     { icon: 'fa-map-marker-alt', label: 'Venue', value: "Murang'a University of Technology" },
                     { icon: 'fa-trophy', label: 'Prize Pool', value: 'KSh 100,000' },
                     { icon: 'fa-lightbulb', label: 'Theme', value: 'Beyond Ideas: Blueprint of a CEO' },
-                    { icon: 'fa-users', label: 'Organiser', value: 'MUTCU RMC' },
+                    { icon: 'fa-users', label: 'Organiser', value: 'MUTCU Business Exposition Committee' },
                   ].map((d, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,151,0,0.1)' }}>
