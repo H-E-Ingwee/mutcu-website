@@ -151,8 +151,26 @@ export const expoAPI = {
   getStats: () => api.get('/expo/stats'),
   updateStatus: (id, status) => api.put(`/expo/registrations/${id}/status`, { status }),
   delete: (id) => api.delete(`/expo/registrations/${id}`),
+  resendEmail: (id) => api.post(`/expo/resend-email/${id}`, {}),
+  testEmail: (email) => api.post('/expo/test-email', { email }),
   exportExcel: (type) => `${BASE_URL}/expo/export/excel${type ? `?type=${type}` : ''}`,
   exportPdf: (type) => `${BASE_URL}/expo/export/pdf${type ? `?type=${type}` : ''}`,
+  getSettings: () => api.get('/expo/settings'),
+  updateSettings: (data) => api.put('/expo/settings', data),
+}
+
+export const formsAPI = {
+  getAll: () => api.get('/forms'),
+  getAllAdmin: () => api.get('/forms/all'),
+  getBySlug: (slug) => api.get(`/forms/${slug}`),
+  create: (data) => api.post('/forms', data),
+  update: (id, data) => api.put(`/forms/${id}`, data),
+  delete: (id) => api.delete(`/forms/${id}`),
+  submit: (slug, data) => api.post(`/forms/${slug}/submit`, data),
+  getSubmissions: (id) => api.get(`/forms/${id}/submissions`),
+  deleteSubmission: (formId, id) => api.delete(`/forms/${formId}/submissions/${id}`),
+  exportExcel: (id) => `${BASE_URL}/forms/${id}/export/excel`,
+  exportPdf: (id) => `${BASE_URL}/forms/${id}/export/pdf`,
 }
 
 export const adminAPI = {

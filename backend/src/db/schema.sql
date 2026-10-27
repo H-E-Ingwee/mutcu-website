@@ -208,3 +208,62 @@ CREATE POLICY "Service role full access" ON website_testimonials FOR ALL USING (
 
 ALTER TABLE expo_registrations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role full access" ON expo_registrations FOR ALL USING (true);
+
+-- ─── Expo Settings (admin-editable page photos/content) ──────────────────────
+CREATE TABLE IF NOT EXISTS expo_settings (
+  key VARCHAR(100) PRIMARY KEY,
+  value TEXT,
+  label VARCHAR(255),
+  category VARCHAR(50) DEFAULT 'general',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE expo_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON expo_settings FOR ALL USING (true);
+
+-- Seed default expo settings
+INSERT INTO expo_settings (key, value, label, category) VALUES
+  ('expo_hero_bg',    '/assets/images/expo/IMG_0630.jpg',      'Hero Background Photo',       'hero'),
+  ('expo_speaker_1',  '/assets/images/expo/IMG_0917.jpg',      'Speaker Showcase Photo 1',    'speakers'),
+  ('expo_speaker_2',  '/assets/images/expo/IMG_0916.jpg',      'Speaker Showcase Photo 2',    'speakers'),
+  ('expo_speaker_3',  '/assets/images/expo/IMG_0910.jpg',      'Speaker Showcase Photo 3',    'speakers'),
+  ('expo_speaker_4',  '/assets/images/expo/IMG_0912.jpg',      'Speaker Showcase Photo 4',    'speakers'),
+  ('expo_speaker_5',  '/assets/images/expo/IMG_0909.jpg',      'Speaker Showcase Photo 5',    'speakers'),
+  ('expo_speaker_6',  '/assets/images/expo/IMG_0918.jpg',      'Speaker Showcase Photo 6',    'speakers'),
+  ('expo_about_1',    '/assets/images/expo/IMG_0917.jpg',      'About Section Photo 1',       'about'),
+  ('expo_about_2',    '/assets/images/expo/IMG_0910.jpg',      'About Section Photo 2',       'about'),
+  ('expo_about_3',    '/assets/images/expo/IMG_0777.jpg',      'About Section Photo 3',       'about'),
+  ('expo_about_4',    '/assets/images/expo/IMG_0834.jpg',      'About Section Photo 4',       'about'),
+  ('expo_poster',     '/assets/images/expo/busexpoposter.jpeg','Official Expo Poster',        'poster')
+ON CONFLICT (key) DO NOTHING;
+
+-- ─── Website Forms (admin form builder) ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS website_forms (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) UNIQUE NOT NULL,
+  description TEXT,
+  fields JSONB NOT NULL DEFAULT '[]',
+  status VARCHAR(20) DEFAULT 'draft',  -- draft | open | closed
+  deadline TIMESTAMPTZ,
+  success_message TEXT DEFAULT 'Thank you for your submission!',
+  notify_email VARCHAR(255),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE website_forms ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON website_forms FOR ALL USING (true);
+
+-- ─── Website Form Submissions ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS website_form_submissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  form_id UUID REFERENCES website_forms(id) ON DELETE CASCADE,
+  data JSONB NOT NULL DEFAULT '{}',
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  ip_address VARCHAR(50)
+);
+ALTER TABLE website_form_submissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON website_form_submissions FOR ALL USING (true);
+
+-- ─── Add new columns to expo_registrations ───────────────────────────────────
+ALTER TABLE expo_registrations ADD COLUMN IF NOT EXISTS business_description TEXT;
+ALTER TABLE expo_registrations ADD COLUMN IF NOT EXISTS support_needed JSONB;

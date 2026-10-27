@@ -6,16 +6,17 @@ import SectionTitle from '../components/SectionTitle'
 import LoadingSpinner from '../components/LoadingSpinner'
 import SEO from '../components/SEO'
 
-const CATEGORIES = ['All', 'worship', 'outreach', 'fellowship', 'events', 'ministry']
+const CATEGORIES = ['All', 'worship', 'outreach', 'fellowship', 'events', 'ministry', 'business-expo']
 
 const CATEGORY_LABELS = {
   All: 'All Photos', worship: 'Worship', outreach: 'Outreach & Missions',
-  fellowship: 'Fellowship', events: 'Events', ministry: 'Ministries'
+  fellowship: 'Fellowship', events: 'Events', ministry: 'Ministries',
+  'business-expo': 'Business Expo'
 }
 
 const CATEGORY_ICONS = {
   worship: 'fa-praying-hands', outreach: 'fa-globe', fellowship: 'fa-users',
-  events: 'fa-star', ministry: 'fa-theater-masks'
+  events: 'fa-star', ministry: 'fa-theater-masks', 'business-expo': 'fa-briefcase'
 }
 
 // Featured category showcase cards — like original site
@@ -63,6 +64,19 @@ const FALLBACK_GALLERY = [
   { id: '32', image_url: '/assets/images/tlp.jpg', title: 'TLP', category: 'fellowship' },
   { id: '33', image_url: '/assets/images/bestp.jpg', title: 'BEST-P', category: 'fellowship' },
   { id: '34', image_url: '/assets/images/welfare11.jpg', title: 'Welfare Ministry', category: 'ministry' },
+  // Business Expo photos
+  { id: 'expo1', image_url: '/assets/images/expo/IMG_0630.jpg', title: 'Business Expo 2026', category: 'business-expo' },
+  { id: 'expo2', image_url: '/assets/images/expo/IMG_0616.jpg', title: 'Expo 2026 — Audience', category: 'business-expo' },
+  { id: 'expo3', image_url: '/assets/images/expo/IMG_0628.jpg', title: 'Expo 2026 — Speaker', category: 'business-expo' },
+  { id: 'expo4', image_url: '/assets/images/expo/IMG_0777.jpg', title: 'Expo 2026 — Panel', category: 'business-expo' },
+  { id: 'expo5', image_url: '/assets/images/expo/IMG_0834.jpg', title: 'Expo 2026 — Networking', category: 'business-expo' },
+  { id: 'expo6', image_url: '/assets/images/expo/IMG_0715.jpg', title: 'Expo 2026 — Pitch', category: 'business-expo' },
+  { id: 'expo7', image_url: '/assets/images/expo/IMG_0751.jpg', title: 'Expo 2026 — Attendees', category: 'business-expo' },
+  { id: 'expo8', image_url: '/assets/images/expo/IMG_0760.jpg', title: 'Expo 2026 — Entrepreneurs', category: 'business-expo' },
+  { id: 'expo9', image_url: '/assets/images/expo/IMG_0917.jpg', title: 'Expo 2026 — Keynote', category: 'business-expo' },
+  { id: 'expo10', image_url: '/assets/images/expo/IMG_0910.jpg', title: 'Expo 2026 — Stage', category: 'business-expo' },
+  { id: 'expo11', image_url: '/assets/images/expo/IMG_0912.jpg', title: 'Expo 2026 — Business Panel', category: 'business-expo' },
+  { id: 'expo12', image_url: '/assets/images/expo/IMG_0916.jpg', title: 'Expo 2026 — Discussion', category: 'business-expo' },
 ]
 
 export default function GalleryPage() {

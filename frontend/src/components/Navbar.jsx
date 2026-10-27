@@ -31,11 +31,12 @@ const NAV_LINKS = [
   },
   { path: '/gallery', label: 'Gallery' },
   { path: '/contact', label: 'Contact' },
+  { path: '/register', label: 'Register' },
   { path: '/business-expo', label: '🏆 Expo 2027', highlight: true },
 ]
 
 // Pages where hero is dark (navbar can be transparent)
-const DARK_HERO_PAGES = ['/', '/about', '/ministries', '/events', '/contact', '/gallery', '/resources', '/blogs', '/register', '/business-expo']
+const DARK_HERO_PAGES = ['/', '/about', '/ministries', '/events', '/contact', '/gallery', '/resources', '/blogs', '/register', '/business-expo', '/register']
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)

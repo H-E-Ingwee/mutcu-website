@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Calendar, FileText, Image, BookOpen,
   Mail, Heart, Users, LogOut, Globe, ChevronRight,
-  Newspaper, BarChart2, Settings, Home, Church, Briefcase
+  Newspaper, BarChart2, Settings, Home, Church, Briefcase,
+  ClipboardList, SlidersHorizontal
 } from 'lucide-react'
 
 const NAV_SECTIONS = [
@@ -41,9 +42,16 @@ const NAV_SECTIONS = [
     ]
   },
   {
-    label: 'Events',
+    label: 'Business Expo',
     items: [
       { path: '/admin/expo-registrations', label: 'Expo Registrations', icon: Briefcase },
+      { path: '/admin/expo-settings', label: 'Expo Page Photos', icon: SlidersHorizontal },
+    ]
+  },
+  {
+    label: 'Forms',
+    items: [
+      { path: '/admin/forms', label: 'Form Builder', icon: ClipboardList },
     ]
   },
   {

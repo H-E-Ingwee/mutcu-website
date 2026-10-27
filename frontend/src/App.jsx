@@ -68,6 +68,9 @@ import AdminContacts from './pages/admin/AdminContacts'
 import AdminPrayer from './pages/admin/AdminPrayer'
 import AdminNewsletter from './pages/admin/AdminNewsletter'
 import AdminExpoRegistrations from './pages/admin/AdminExpoRegistrations'
+import AdminExpoSettings from './pages/admin/AdminExpoSettings'
+import AdminForms from './pages/admin/AdminForms'
+import RegistrationsPage from './pages/RegistrationsPage'
 
 export default function App() {
   return (
@@ -92,6 +95,8 @@ export default function App() {
           <Route path="prayer" element={<AdminPrayer />} />
           <Route path="newsletter" element={<AdminNewsletter />} />
           <Route path="expo-registrations" element={<AdminExpoRegistrations />} />
+          <Route path="expo-settings" element={<AdminExpoSettings />} />
+          <Route path="forms" element={<AdminForms />} />
         </Route>
 
         {/* Public Site */}
@@ -109,6 +114,8 @@ export default function App() {
           <Route path="sermons" element={<SermonArchivePage />} />
           <Route path="find-your-ministry" element={<MinistryMatcherPage />} />
           <Route path="business-expo" element={<BusinessExpoPage />} />
+          <Route path="register" element={<RegistrationsPage />} />
+          <Route path="register/:slug" element={<RegistrationsPage />} />
 
           {/* Ministry Detail Pages */}
           <Route path="ministries/music-ministry" element={<MusicMinistryPage />} />
