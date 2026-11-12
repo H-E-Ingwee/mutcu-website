@@ -100,6 +100,48 @@ export default function AdminUsers() {
 
   
 
+  const handleInvite = async (e) => {
+    e.preventDefault()
+    if (!inviteForm.email.trim() || !inviteForm.name.trim()) return toast.error('Email and name are required')
+    setSaving(true)
+    try {
+      const res = await adminUsersAPI.invite(inviteForm)
+      if (res.emailSent === false) {
+        toast.error(`User created but email failed: ${res.emailError}`, { duration: 8000 })
+        toast('Go to Settings → AI & Email → Fix Brevo configuration, then resend the invite.', { icon: '⚙️', duration: 8000 })
+      } else {
+        toast.success(`Invitation sent to ${inviteForm.email}!`)
+      }
+      setInviteModal(false)
+      setInviteForm({ email: '', name: '', website_role: 'content_manager' })
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to send invitation')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleResendInvite = async (userId, email) => {
+    setResending(userId)
+    try {
+      const res = await adminUsersAPI.resendInvite(userId)
+      if (res.emailSent === false) {
+        toast.error(`Email failed: ${res.emailError}`, { duration: 6000 })
+        if (res.inviteUrl) {
+          navigator.clipboard.writeText(res.inviteUrl).catch(() => {})
+          toast.success('Invite link copied to clipboard! Share it manually with the user.', { duration: 8000 })
+        }
+      } else {
+        toast.success(`Invitation resent to ${email}`)
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to resend invitation')
+    } finally {
+      setResending(null)
+    }
+  }
+
   const handleEdit = async () => {
     setSaving(true)
     try {

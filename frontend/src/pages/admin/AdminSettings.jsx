@@ -58,6 +58,8 @@ export default function AdminSettings() {
   const [clearingCache, setClearingCache] = useState(false)
   const [aiStatus, setAiStatus] = useState(null)
   const [healthStatus, setHealthStatus] = useState({ brevo: null, ai: null })
+  const [emailDiag, setEmailDiag] = useState(null)
+  const [loadingDiag, setLoadingDiag] = useState(false)
 
   useEffect(() => {
     api.get('/settings')
@@ -89,7 +91,38 @@ export default function AdminSettings() {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 
-  
+  const loadEmailDiagnostics = async () => {
+    setLoadingDiag(true)
+    try {
+      const res = await api.get('/admin/email-diagnostics')
+      setEmailDiag(res)
+    } catch (err) {
+      setEmailDiag({ configured: false, issues: [err.message], envVars: {} })
+    } finally {
+      setLoadingDiag(false)
+    }
+  }
+
+  const sendTestEmail = async () => {
+    const emailTo = settings.site_email || ''
+    if (!emailTo) return toast.error('Please set a contact email in Site Identity first')
+    setTestEmailSending(true)
+    setTestEmailStatus(null)
+    try {
+      const res = await api.post('/admin/test-email', { email: emailTo })
+      toast.success(res.message || `Test email sent to ${emailTo}!`)
+      setTestEmailStatus('sent')
+    } catch (err) {
+      const errData = err.response?.data || {}
+      const msg = errData.error || err.message || 'Email failed'
+      const fix = errData.fix || ''
+      toast.error(msg, { duration: 8000 })
+      if (fix) toast(`Fix: ${fix}`, { icon: '🔧', duration: 10000 })
+      setTestEmailStatus('error')
+    } finally {
+      setTestEmailSending(false)
+    }
+  }
 
   const sendExpoTestEmail = async () => {
     const emailTo = settings.site_email || ''
