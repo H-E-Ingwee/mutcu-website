@@ -73,6 +73,7 @@ app.use('/api/ministries', require('./routes/ministries'))
 app.use('/api/settings', require('./routes/settings'))
 app.use('/api/expo', require('./routes/expo'))
 app.use('/api/forms', require('./routes/forms'))
+app.use('/api/admin-users', require('./routes/adminUsers'))
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: `Route not found: ${req.method} ${req.path}` }))

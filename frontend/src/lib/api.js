@@ -182,3 +182,21 @@ export const adminAPI = {
   updateTestimonial: (id, data) => api.put(`/admin/testimonials/${id}`, data),
   deleteTestimonial: (id) => api.delete(`/admin/testimonials/${id}`),
 }
+
+export const adminUsersAPI = {
+  // Website admin user management
+  login: (email, password) => api.post('/admin-users/login', { email, password }),
+  me: () => api.get('/admin-users/me'),
+  getRoles: () => api.get('/admin-users/roles'),
+  getAll: () => api.get('/admin-users'),
+  invite: (data) => api.post('/admin-users/invite', data),
+  validateInvite: (token) => api.get(`/admin-users/invite/${token}`),
+  acceptInvite: (token, password) => api.post('/admin-users/accept-invite', { token, password }),
+  update: (id, data) => api.put(`/admin-users/${id}`, data),
+  resendInvite: (id) => api.post(`/admin-users/${id}/resend-invite`, {}),
+  deactivate: (id) => api.delete(`/admin-users/${id}`),
+  getAuditLog: (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return api.get(`/admin-users/audit-log${q ? `?${q}` : ''}`)
+  },
+}

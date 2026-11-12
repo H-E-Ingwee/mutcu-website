@@ -267,3 +267,53 @@ CREATE POLICY "Service role full access" ON website_form_submissions FOR ALL USI
 -- ─── Add new columns to expo_registrations ───────────────────────────────────
 ALTER TABLE expo_registrations ADD COLUMN IF NOT EXISTS business_description TEXT;
 ALTER TABLE expo_registrations ADD COLUMN IF NOT EXISTS support_needed JSONB;
+
+-- ─── Website Admin Users (website-specific, separate from DMS) ────────────────
+CREATE TABLE IF NOT EXISTS website_admin_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255),           -- bcrypt hash, set on first login via invite
+  website_role VARCHAR(50) NOT NULL,    -- super_admin | content_manager | blog_manager | gallery_manager | events_manager | newsletter_manager | prayer_manager | analytics_manager | expo_manager | forms_manager
+  is_active BOOLEAN DEFAULT true,
+  invite_token VARCHAR(255),            -- one-time token sent via email
+  invite_expires_at TIMESTAMPTZ,
+  invite_accepted BOOLEAN DEFAULT false,
+  invited_by UUID,                      -- references website_admin_users.id
+  last_login_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE website_admin_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON website_admin_users FOR ALL USING (true);
+
+-- ─── Website Audit Log ────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS website_audit_log (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID,
+  user_name VARCHAR(255),
+  user_email VARCHAR(255),
+  user_role VARCHAR(50),
+  action VARCHAR(20) NOT NULL,          -- CREATE | UPDATE | DELETE | LOGIN | LOGOUT | EXPORT | INVITE
+  module VARCHAR(50),                   -- blogs | events | gallery | prayer | contacts | leadership | ministries | resources | settings | expo | forms | users
+  record_id VARCHAR(255),
+  record_title VARCHAR(255),
+  details JSONB,
+  ip_address VARCHAR(50),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE website_audit_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON website_audit_log FOR ALL USING (true);
+
+-- ─── Website Notifications ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS website_notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type VARCHAR(50),                     -- contact | prayer | expo | form | system
+  title VARCHAR(255) NOT NULL,
+  body TEXT,
+  link VARCHAR(255),
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE website_notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON website_notifications FOR ALL USING (true);

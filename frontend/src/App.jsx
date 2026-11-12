@@ -70,14 +70,18 @@ import AdminNewsletter from './pages/admin/AdminNewsletter'
 import AdminExpoRegistrations from './pages/admin/AdminExpoRegistrations'
 import AdminExpoSettings from './pages/admin/AdminExpoSettings'
 import AdminForms from './pages/admin/AdminForms'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminAuditLog from './pages/admin/AdminAuditLog'
+import AcceptInvitePage from './pages/admin/AcceptInvitePage'
 import RegistrationsPage from './pages/RegistrationsPage'
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Admin Login (standalone) */}
+        {/* Admin Login + Invite (standalone) */}
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/accept-invite" element={<AcceptInvitePage />} />
 
         {/* Admin Dashboard */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -97,6 +101,8 @@ export default function App() {
           <Route path="expo-registrations" element={<AdminExpoRegistrations />} />
           <Route path="expo-settings" element={<AdminExpoSettings />} />
           <Route path="forms" element={<AdminForms />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="audit-log" element={<AdminAuditLog />} />
         </Route>
 
         {/* Public Site */}
