@@ -45,7 +45,7 @@ router.get('/me', authenticate, (req, res) => {
 // GET /api/admin/dashboard
 router.get('/dashboard', authenticate, requireAdmin, async (req, res) => {
   try {
-    const [events, blogs, gallery, contacts, prayer, newsletter, leadership] = await Promise.all([
+    const [events, blogs, gallery, contacts, prayer, newsletter, leadership, ministries] = await Promise.all([
       supabase.from('website_events').select('*', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('website_blogs').select('*', { count: 'exact', head: true }).eq('status', 'published'),
       supabase.from('website_gallery').select('*', { count: 'exact', head: true }).eq('is_active', true),
@@ -53,6 +53,7 @@ router.get('/dashboard', authenticate, requireAdmin, async (req, res) => {
       supabase.from('website_prayer_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('website_newsletter').select('*', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('website_leadership').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('website_ministries').select('*', { count: 'exact', head: true }).eq('is_active', true),
     ])
 
     res.json({
@@ -64,6 +65,7 @@ router.get('/dashboard', authenticate, requireAdmin, async (req, res) => {
         pendingPrayers: prayer.count || 0,
         subscribers: newsletter.count || 0,
         leaders: leadership.count || 0,
+        ministries: ministries.count || 0,
       }
     })
   } catch (err) { res.status(500).json({ error: err.message }) }

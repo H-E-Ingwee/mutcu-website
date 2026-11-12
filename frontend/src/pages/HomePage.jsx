@@ -85,20 +85,34 @@ export default function HomePage() {
   const [newsletterEmail, setNewsletterEmail] = useState('')
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false)
   const [siteSettings, setSiteSettings] = useState({})
+  const [dynamicSlides, setDynamicSlides] = useState(null)
 
   // Helper: check if a section is enabled (default true if not set)
   const sectionOn = (key) => siteSettings[key] !== 'false'
 
-  // Fetch site settings for section visibility
+  // Fetch site settings — includes hero slides + section visibility
   useEffect(() => {
-    api.get('/settings').then(data => setSiteSettings(data.settings || {})).catch(() => {})
+    api.get('/settings').then(data => {
+      const s = data.settings || {}
+      setSiteSettings(s)
+      // Load hero slides from DB if admin has saved them
+      if (s.hero_slides) {
+        try {
+          const parsed = JSON.parse(s.hero_slides)
+          if (Array.isArray(parsed) && parsed.length > 0) setDynamicSlides(parsed)
+        } catch {}
+      }
+    }).catch(() => {})
   }, [])
+
+  // Use dynamic slides from DB if available, otherwise fall back to hardcoded
+  const activeSlides = dynamicSlides || HERO_SLIDES
 
   // Hero slideshow
   useEffect(() => {
-    const timer = setInterval(() => setCurrentSlide(i => (i + 1) % HERO_SLIDES.length), 5000)
+    const timer = setInterval(() => setCurrentSlide(i => (i + 1) % activeSlides.length), 5000)
     return () => clearInterval(timer)
-  }, [])
+  }, [activeSlides.length])
 
   // Testimonial rotation
   useEffect(() => {
@@ -128,7 +142,7 @@ export default function HomePage() {
     finally { setNewsletterSubmitting(false) }
   }
 
-  const slide = HERO_SLIDES[currentSlide]
+  const slide = activeSlides[currentSlide] || activeSlides[0]
 
   return (
     <>
@@ -141,7 +155,7 @@ export default function HomePage() {
     <div>
       {/* ─── Hero ─────────────────────────────────────────────────────────────── */}
       <section className="hero-section" style={{ marginTop: '-80px' }}>
-        {HERO_SLIDES.map((s, i) => (
+        {activeSlides.map((s, i) => (
           <div key={i} className="hero-slide" style={{
             backgroundImage: `url(${s.image})`,
             opacity: i === currentSlide ? 1 : 0,
@@ -177,7 +191,7 @@ export default function HomePage() {
 
         {/* Slide indicators */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2" style={{ zIndex: 3 }}>
-          {HERO_SLIDES.map((_, i) => (
+          {activeSlides.map((_, i) => (
             <button key={i} onClick={() => setCurrentSlide(i)}
               className={`h-1.5 rounded-full transition-all duration-300 ${i === currentSlide ? 'w-8 bg-orange' : 'w-2 bg-white/40'}`} />
           ))}
