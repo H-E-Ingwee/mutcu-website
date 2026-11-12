@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const supabase = require('../lib/supabase')
 const { authenticate, requireAdmin } = require('../middleware/auth')
-const { sendContactNotification, sendEmail } = require('../lib/email')
+const { sendContactNotification, sendEmailSafe } = require('../lib/email')
 const { generateContactReply } = require('../lib/gemini')
 
 router.post('/', async (req, res) => {
@@ -27,7 +27,7 @@ router.post('/', async (req, res) => {
       try {
         const aiReply = await generateContactReply(name.trim(), subject.trim(), message.trim())
         if (aiReply) {
-          await sendEmail({
+          await sendEmailSafe({
             to: email.trim(),
             subject: `Re: ${subject.trim()} — MUTCU`,
             replyTo: process.env.ADMIN_EMAIL || 'mutcunion@gmail.com',

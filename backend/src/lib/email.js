@@ -1,44 +1,135 @@
 require('dotenv').config()
 
-const BREVO_API_KEY = process.env.BREVO_API_KEY
-const FROM_EMAIL = process.env.MAIL_FROM_EMAIL || 'noreply@mutcu.org'
-const FROM_NAME = process.env.MAIL_FROM_NAME || 'MUTCU'
-const REPLY_TO = process.env.MAIL_REPLY_TO || 'mutcunion@gmail.com'
+// ─── IMPORTANT: Read env vars inside functions, NOT at module load time ────────
+// This ensures env vars set after module load (e.g. on Render) are always used.
 
-async function sendEmail({ to, subject, html, replyTo }) {
-  if (!BREVO_API_KEY) {
-    console.warn('[EMAIL] BREVO_API_KEY not set — skipping email')
-    return
+function getConfig() {
+  return {
+    apiKey: process.env.BREVO_API_KEY,
+    fromEmail: process.env.MAIL_FROM_EMAIL || 'noreply@mutcu.org',
+    fromName: process.env.MAIL_FROM_NAME || 'MUTCU',
+    replyTo: process.env.MAIL_REPLY_TO || 'mutcunion@gmail.com',
+    adminEmail: process.env.ADMIN_EMAIL || 'mutcunion@gmail.com',
   }
+}
+
+// ─── Core send function ───────────────────────────────────────────────────────
+async function sendEmail({ to, subject, html, replyTo, text }) {
+  const cfg = getConfig()
+
+  if (!cfg.apiKey) {
+    const msg = '[EMAIL] BREVO_API_KEY is not set — email skipped. Set it in Render environment variables.'
+    console.warn(msg)
+    throw new Error('Email service not configured. BREVO_API_KEY is missing on the server.')
+  }
+
+  if (!cfg.fromEmail || cfg.fromEmail === 'noreply@mutcu.org') {
+    console.warn('[EMAIL] MAIL_FROM_EMAIL not set, using default noreply@mutcu.org — make sure this is verified in Brevo.')
+  }
+
+  // Normalise recipient
+  const toArray = Array.isArray(to)
+    ? to.map(t => typeof t === 'string' ? { email: t } : t)
+    : [{ email: to }]
+
+  const payload = {
+    sender: { name: cfg.fromName, email: cfg.fromEmail },
+    to: toArray,
+    replyTo: { email: replyTo || cfg.replyTo },
+    subject,
+    htmlContent: html,
+  }
+  if (text) payload.textContent = text
+
+  console.log(`[EMAIL] Sending "${subject}" to ${toArray.map(t => t.email).join(', ')}`)
 
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
-      'api-key': BREVO_API_KEY,
+      'api-key': cfg.apiKey,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      sender: { name: FROM_NAME, email: FROM_EMAIL },
-      to: Array.isArray(to) ? to : [{ email: to }],
-      replyTo: { email: replyTo || REPLY_TO },
-      subject,
-      htmlContent: html,
-    }),
+    body: JSON.stringify(payload),
   })
 
+  const responseText = await response.text()
+  let responseData = {}
+  try { responseData = JSON.parse(responseText) } catch {}
+
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    console.error('[EMAIL ERROR]', err)
-    throw new Error(err.message || `Email send failed: ${response.status}`)
+    console.error('[EMAIL ERROR]', {
+      status: response.status,
+      statusText: response.statusText,
+      body: responseData,
+      to: toArray.map(t => t.email),
+      subject,
+    })
+
+    // Provide specific, actionable error messages
+    if (response.status === 401) {
+      throw new Error('Email failed: Invalid BREVO_API_KEY. Check your Render environment variables.')
+    }
+    if (response.status === 400) {
+      const detail = responseData.message || responseData.code || 'Bad request'
+      if (detail.includes('sender') || detail.includes('from')) {
+        throw new Error(`Email failed: Sender email "${cfg.fromEmail}" is not verified in Brevo. Go to Brevo → Senders & IPs → Verify your sender email.`)
+      }
+      throw new Error(`Email failed (400): ${detail}`)
+    }
+    if (response.status === 402) {
+      throw new Error('Email failed: Brevo account limit reached. Check your Brevo plan.')
+    }
+    if (response.status === 429) {
+      throw new Error('Email failed: Too many requests to Brevo. Please wait and try again.')
+    }
+    throw new Error(`Email failed (${response.status}): ${responseData.message || responseText}`)
   }
 
-  return response.json()
+  console.log(`[EMAIL] ✓ Sent successfully to ${toArray.map(t => t.email).join(', ')}`)
+  return responseData
 }
 
+// ─── Safe wrapper — logs error but does NOT throw (fire-and-forget) ───────────
+async function sendEmailSafe(opts) {
+  try {
+    return await sendEmail(opts)
+  } catch (err) {
+    console.error('[EMAIL SAFE] Failed silently:', err.message)
+    return null
+  }
+}
+
+// ─── Diagnostic: test email config ───────────────────────────────────────────
+async function testEmailConfig() {
+  const cfg = getConfig()
+  const issues = []
+
+  if (!cfg.apiKey) issues.push('BREVO_API_KEY is not set')
+  else if (cfg.apiKey === 'your-brevo-api-key-here') issues.push('BREVO_API_KEY is still the placeholder value')
+  else if (cfg.apiKey.length < 20) issues.push('BREVO_API_KEY looks too short — may be invalid')
+
+  if (!process.env.MAIL_FROM_EMAIL) issues.push('MAIL_FROM_EMAIL is not set (using default noreply@mutcu.org)')
+  if (!process.env.ADMIN_EMAIL) issues.push('ADMIN_EMAIL is not set (using default mutcunion@gmail.com)')
+
+  return {
+    configured: issues.length === 0,
+    issues,
+    config: {
+      hasApiKey: !!cfg.apiKey,
+      apiKeyLength: cfg.apiKey?.length || 0,
+      fromEmail: cfg.fromEmail,
+      fromName: cfg.fromName,
+      replyTo: cfg.replyTo,
+      adminEmail: cfg.adminEmail,
+    }
+  }
+}
+
+// ─── Contact notification ─────────────────────────────────────────────────────
 async function sendContactNotification({ name, email, subject, message }) {
-  const adminEmail = process.env.ADMIN_EMAIL || 'mutcunion@gmail.com'
-  return sendEmail({
-    to: adminEmail,
+  const cfg = getConfig()
+  return sendEmailSafe({
+    to: cfg.adminEmail,
     subject: `[MUTCU Website] New Contact: ${subject}`,
     replyTo: email,
     html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -59,10 +150,11 @@ async function sendContactNotification({ name, email, subject, message }) {
   })
 }
 
+// ─── Prayer notification ──────────────────────────────────────────────────────
 async function sendPrayerNotification({ name, request }) {
-  const adminEmail = process.env.ADMIN_EMAIL || 'mutcunion@gmail.com'
-  return sendEmail({
-    to: adminEmail,
+  const cfg = getConfig()
+  return sendEmailSafe({
+    to: cfg.adminEmail,
     subject: `[MUTCU] New Prayer Request`,
     html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
       <div style="background:linear-gradient(135deg,#04003D,#0a0060);padding:24px 32px">
@@ -81,8 +173,9 @@ async function sendPrayerNotification({ name, request }) {
   })
 }
 
+// ─── Newsletter welcome ───────────────────────────────────────────────────────
 async function sendNewsletterWelcome(email) {
-  return sendEmail({
+  return sendEmailSafe({
     to: email,
     subject: 'Welcome to the MUTCU Newsletter!',
     html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -102,4 +195,11 @@ async function sendNewsletterWelcome(email) {
   })
 }
 
-module.exports = { sendEmail, sendContactNotification, sendPrayerNotification, sendNewsletterWelcome }
+module.exports = {
+  sendEmail,
+  sendEmailSafe,
+  testEmailConfig,
+  sendContactNotification,
+  sendPrayerNotification,
+  sendNewsletterWelcome,
+}

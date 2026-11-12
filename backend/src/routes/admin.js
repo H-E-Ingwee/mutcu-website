@@ -152,9 +152,19 @@ router.post('/send-reply', authenticate, requireAdmin, async (req, res) => {
 // POST /api/admin/test-email
 router.post('/test-email', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { sendEmail } = require('../lib/email')
+    const { sendEmail, testEmailConfig } = require('../lib/email')
     const to = req.body.email || req.user.email
     if (!to) return res.status(400).json({ error: 'No email address provided. Set a contact email in Site Identity settings.' })
+
+    // Run diagnostics first
+    const diag = await testEmailConfig()
+    if (!diag.configured) {
+      return res.status(500).json({
+        error: `Email not configured: ${diag.issues.join('; ')}`,
+        diagnostics: diag,
+        fix: 'Go to Render → your backend service → Environment → add BREVO_API_KEY, MAIL_FROM_EMAIL, ADMIN_EMAIL',
+      })
+    }
 
     await sendEmail({
       to,
@@ -175,10 +185,45 @@ router.post('/test-email', authenticate, requireAdmin, async (req, res) => {
         </div>
       </div>`,
     })
-    res.json({ message: `Test email sent successfully to ${to}` })
+    res.json({ message: `Test email sent successfully to ${to}`, diagnostics: diag })
   } catch (err) {
     console.error('[TEST EMAIL]', err.message)
-    res.status(500).json({ error: `Email failed: ${err.message}. Check your BREVO_API_KEY in Render environment variables.` })
+    res.status(500).json({
+      error: err.message,
+      fix: err.message.includes('BREVO_API_KEY') || err.message.includes('not configured')
+        ? 'Go to Render → your backend service → Environment → add BREVO_API_KEY'
+        : err.message.includes('sender') || err.message.includes('verified')
+          ? 'Go to Brevo dashboard → Senders & IPs → verify your sender email address'
+          : 'Check Render logs for more details',
+    })
+  }
+})
+
+// GET /api/admin/email-diagnostics — detailed email config check
+router.get('/email-diagnostics', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { testEmailConfig } = require('../lib/email')
+    const diag = await testEmailConfig()
+    res.json({
+      ...diag,
+      envVars: {
+        BREVO_API_KEY: process.env.BREVO_API_KEY ? `Set (${process.env.BREVO_API_KEY.length} chars)` : 'NOT SET ❌',
+        MAIL_FROM_EMAIL: process.env.MAIL_FROM_EMAIL || 'NOT SET (using noreply@mutcu.org)',
+        MAIL_FROM_NAME: process.env.MAIL_FROM_NAME || 'NOT SET (using MUTCU)',
+        MAIL_REPLY_TO: process.env.MAIL_REPLY_TO || 'NOT SET (using mutcunion@gmail.com)',
+        ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'NOT SET (using mutcunion@gmail.com)',
+      },
+      instructions: [
+        '1. Go to https://app.brevo.com → Login',
+        '2. Go to Account → SMTP & API → API Keys → Create a new API key',
+        '3. Copy the key and add it as BREVO_API_KEY in Render environment variables',
+        '4. Go to Brevo → Senders & IPs → Add and verify your sender email (e.g. noreply@mutcu.org)',
+        '5. Set MAIL_FROM_EMAIL to that verified email in Render',
+        '6. Redeploy your Render service after adding env vars',
+      ],
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 })
 

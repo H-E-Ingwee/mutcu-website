@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const { authenticate } = require('../middleware/auth')
-const { sendEmail } = require('../lib/email')
+const { sendEmail, sendEmailSafe, testEmailConfig } = require('../lib/email')
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
 const WEBSITE_ROLES = [
@@ -176,9 +176,22 @@ router.post('/invite', authenticate, requireSuperWebAdmin, async (req, res) => {
 
     await auditLog(req.user, 'INVITE', 'users', userId, `${name.trim()} (${email.trim()})`, { role: website_role }, req.ip)
 
-    res.status(201).json({ message: `Invitation sent to ${email.trim()}`, userId })
+    res.status(201).json({
+      message: `Invitation sent to ${email.trim()}`,
+      userId,
+      emailSent: true,
+    })
   } catch (err) {
     console.error('[INVITE]', err.message)
+    // If it's an email error, still return success for the user creation but flag email failure
+    if (err.message?.includes('Email') || err.message?.includes('Brevo') || err.message?.includes('BREVO')) {
+      return res.status(201).json({
+        message: `User created but invitation email failed: ${err.message}`,
+        userId: null,
+        emailSent: false,
+        emailError: err.message,
+      })
+    }
     res.status(500).json({ error: err.message })
   }
 })
@@ -350,23 +363,34 @@ router.post('/:id/resend-invite', authenticate, requireSuperWebAdmin, async (req
     const inviteUrl = `${process.env.FRONTEND_URL || 'https://mutcu.org'}/admin/accept-invite?token=${token}`
     const roleLabel = WEBSITE_ROLES.find(r => r.value === user.website_role)?.label || user.website_role
 
-    await sendEmail({
-      to: user.email,
-      subject: `[Resent] Your MUTCU Website Admin Invitation`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-        <div style="background:linear-gradient(135deg,#04003D,#0a0060);padding:32px;text-align:center">
-          <h1 style="color:#FF9700;margin:0;font-size:20px">MUTCU Website Admin — Invitation Resent</h1>
-        </div>
-        <div style="padding:32px;background:#fff">
-          <p style="font-size:15px;color:#04003D;font-weight:700">Hi ${user.name},</p>
-          <p style="color:#374151;font-size:14px;line-height:1.8">Your invitation as <strong>${roleLabel}</strong> has been resent. Click below to set your password:</p>
-          <a href="${inviteUrl}" style="display:inline-block;background:#FF9700;color:white;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin:16px 0">Accept Invitation</a>
-          <p style="color:#9CA3AF;font-size:12px">This link expires in 7 days.</p>
-        </div>
-      </div>`,
-    })
-
-    res.json({ message: `Invitation resent to ${user.email}` })
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: `[Resent] Your MUTCU Website Admin Invitation`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:linear-gradient(135deg,#04003D,#0a0060);padding:32px;text-align:center">
+            <h1 style="color:#FF9700;margin:0;font-size:20px">MUTCU Website Admin — Invitation Resent</h1>
+          </div>
+          <div style="padding:32px;background:#fff">
+            <p style="font-size:15px;color:#04003D;font-weight:700">Hi ${user.name},</p>
+            <p style="color:#374151;font-size:14px;line-height:1.8">Your invitation as <strong>${roleLabel}</strong> has been resent. Click below to set your password:</p>
+            <a href="${inviteUrl}" style="display:inline-block;background:#FF9700;color:white;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin:16px 0">Accept Invitation</a>
+            <p style="color:#9CA3AF;font-size:12px">This link expires in 7 days.</p>
+            <p style="color:#9CA3AF;font-size:11px;word-break:break-all">Or copy: ${inviteUrl}</p>
+          </div>
+        </div>`,
+      })
+      res.json({ message: `Invitation resent to ${user.email}`, emailSent: true })
+    } catch (emailErr) {
+      console.error('[RESEND INVITE EMAIL]', emailErr.message)
+      // Return the invite URL so admin can share it manually
+      res.json({
+        message: `Email could not be sent: ${emailErr.message}`,
+        emailSent: false,
+        emailError: emailErr.message,
+        inviteUrl, // Return URL so admin can copy and share manually
+      })
+    }
   } catch (err) { res.status(500).json({ error: err.message }) }
 })
 

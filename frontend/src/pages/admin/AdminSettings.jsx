@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import api from '../../lib/api'
 import { expoAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
-import { Save, Globe, Share2, Link, Home, Search, Mail, RefreshCw, Zap, CheckCircle, XCircle, Loader } from 'lucide-react'
+import { Save, Globe, Share2, Link, Home, Search, Mail, RefreshCw, Zap, CheckCircle, XCircle, Loader, AlertTriangle } from 'lucide-react'
 
 const TABS = [
   { id: 'identity', label: 'Site Identity', icon: Globe },
@@ -89,22 +89,7 @@ export default function AdminSettings() {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 
-  const sendTestEmail = async () => {
-    const emailTo = settings.site_email || ''
-    if (!emailTo) return toast.error('Please set a contact email in Site Identity first')
-    setTestEmailSending(true)
-    setTestEmailStatus(null)
-    try {
-      const res = await api.post('/admin/test-email', { email: emailTo })
-      toast.success(res.message || `Test email sent to ${emailTo}!`)
-      setTestEmailStatus('sent')
-    } catch (err) {
-      toast.error(err.response?.data?.error || err.message || 'Failed. Check your BREVO_API_KEY on Render.')
-      setTestEmailStatus('error')
-    } finally {
-      setTestEmailSending(false)
-    }
-  }
+  
 
   const sendExpoTestEmail = async () => {
     const emailTo = settings.site_email || ''
@@ -363,36 +348,91 @@ export default function AdminSettings() {
                     </button>
                   </div>
 
-                  {/* Email config reminder */}
+                  {/* Email config + diagnostics */}
                   <div className="pt-5 border-t border-gray-100">
-                    <h4 className="font-montserrat font-bold text-navy text-sm mb-1 flex items-center gap-2">
-                      <Mail size={14} className="text-orange" /> Email (Brevo) Configuration
-                    </h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-montserrat font-bold text-navy text-sm flex items-center gap-2">
+                        <Mail size={14} className="text-orange" /> Email (Brevo) Configuration
+                      </h4>
+                      <button onClick={loadEmailDiagnostics} disabled={loadingDiag}
+                        className="flex items-center gap-1 text-xs font-montserrat font-semibold text-orange hover:underline disabled:opacity-50">
+                        {loadingDiag ? <><RefreshCw size={11} className="animate-spin" />Checking...</> : <><RefreshCw size={11} />Run Diagnostics</>}
+                      </button>
+                    </div>
+
+                    {/* Diagnostics result */}
+                    {emailDiag && (
+                      <div className={`p-4 rounded-xl mb-4 ${emailDiag.configured ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          {emailDiag.configured
+                            ? <><CheckCircle size={14} className="text-green-600" /><span className="font-montserrat font-bold text-green-700 text-sm">Email is configured correctly</span></>
+                            : <><XCircle size={14} className="text-red-600" /><span className="font-montserrat font-bold text-red-700 text-sm">Email is NOT configured</span></>
+                          }
+                        </div>
+                        {emailDiag.issues?.length > 0 && (
+                          <ul className="space-y-1 mb-3">
+                            {emailDiag.issues.map((issue, i) => (
+                              <li key={i} className="text-xs text-red-600 font-lato flex items-start gap-1">
+                                <span className="text-red-400 flex-shrink-0">•</span>{issue}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {emailDiag.envVars && (
+                          <div className="space-y-1">
+                            {Object.entries(emailDiag.envVars).map(([key, val]) => (
+                              <div key={key} className="flex items-center gap-2 text-xs font-lato">
+                                <code className={`font-bold ${val.includes('NOT SET') ? 'text-red-600' : 'text-green-700'}`}>{key}</code>
+                                <span className="text-gray-500">{val}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {!emailDiag.configured && emailDiag.instructions && (
+                          <div className="mt-3 pt-3 border-t border-red-200">
+                            <p className="text-xs font-montserrat font-bold text-red-700 mb-1">How to fix:</p>
+                            <ol className="space-y-0.5">
+                              {emailDiag.instructions.map((step, i) => (
+                                <li key={i} className="text-xs text-red-600 font-lato">{step}</li>
+                              ))}
+                            </ol>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <p className="text-gray-500 text-xs mb-3">
-                      All transactional emails (contact confirmations, prayer notifications, expo registrations, newsletter) are sent via Brevo.
+                      All transactional emails are sent via Brevo. Set these environment variables on Render:
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                       {[
-                        { label: 'BREVO_API_KEY', desc: 'Your Brevo API key from brevo.com' },
-                        { label: 'MAIL_FROM_EMAIL', desc: 'Verified sender email in Brevo' },
-                        { label: 'MAIL_FROM_NAME', desc: 'Sender name (e.g. MUTCU)' },
-                        { label: 'ADMIN_EMAIL', desc: 'Where admin notifications go' },
+                        { label: 'BREVO_API_KEY', desc: 'API key from app.brevo.com → Account → API Keys', required: true },
+                        { label: 'MAIL_FROM_EMAIL', desc: 'Verified sender email in Brevo Senders', required: true },
+                        { label: 'MAIL_FROM_NAME', desc: 'Sender name shown in inbox (e.g. MUTCU)', required: false },
+                        { label: 'ADMIN_EMAIL', desc: 'Where admin notifications are delivered', required: true },
                       ].map((v, i) => (
                         <div key={i} className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                          <code className="text-xs font-bold text-navy">{v.label}</code>
+                          <div className="flex items-center gap-1.5">
+                            <code className="text-xs font-bold text-navy">{v.label}</code>
+                            {v.required && <span className="text-orange text-xs">*</span>}
+                          </div>
                           <p className="text-gray-400 text-xs mt-0.5">{v.desc}</p>
                         </div>
                       ))}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button onClick={sendTestEmail} disabled={testEmailSending}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-montserrat font-bold border-2 border-gray-200 text-gray-600 hover:border-orange hover:text-orange transition-all disabled:opacity-60">
-                        {testEmailSending ? <><RefreshCw size={12} className="animate-spin" />Sending...</> : <><Mail size={12} />Send Test Email</>}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-montserrat font-bold border-2 transition-all disabled:opacity-60 ${testEmailStatus === 'sent' ? 'border-green-500 text-green-600 bg-green-50' : testEmailStatus === 'error' ? 'border-red-400 text-red-600 bg-red-50' : 'border-gray-200 text-gray-600 hover:border-orange hover:text-orange'}`}>
+                        {testEmailSending ? <><RefreshCw size={12} className="animate-spin" />Sending...</> : testEmailStatus === 'sent' ? <><CheckCircle size={12} />Sent ✓</> : testEmailStatus === 'error' ? <><XCircle size={12} />Failed</> : <><Mail size={12} />Send Test Email</>}
                       </button>
                       <button onClick={sendExpoTestEmail} disabled={testEmailSending}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-montserrat font-bold border-2 border-gray-200 text-gray-600 hover:border-orange hover:text-orange transition-all disabled:opacity-60">
                         <Mail size={12} /> Test Expo Email
                       </button>
+                      <a href="https://app.brevo.com" target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-montserrat font-bold border-2 border-gray-200 text-gray-600 hover:border-orange hover:text-orange transition-all">
+                        <i className="fas fa-external-link-alt text-xs" /> Open Brevo
+                      </a>
                     </div>
                   </div>
                 </div>

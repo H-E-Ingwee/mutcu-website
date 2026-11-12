@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const supabase = require('../lib/supabase')
 const { authenticate, requireAdmin } = require('../middleware/auth')
-const { sendEmail } = require('../lib/email')
+const { sendEmailSafe } = require('../lib/email')
 
 // ─── GET /api/forms — public: list open forms ─────────────────────────────────
 router.get('/', async (req, res) => {
@@ -157,7 +157,7 @@ router.post('/:slug/submit', async (req, res) => {
         return `<tr><td style="padding:5px 0;color:#6B7280;font-size:13px;width:140px">${f.label}</td><td style="padding:5px 0;color:#1a1a2e;font-size:13px;font-weight:600">${Array.isArray(val) ? val.join(', ') : val}</td></tr>`
       }).filter(Boolean).join('')
 
-      sendEmail({
+      sendEmailSafe({
         to: submitterEmail,
         subject: `Registration Confirmed — ${form.title}`,
         replyTo: form.notify_email || process.env.ADMIN_EMAIL || 'mutcunion@gmail.com',
@@ -192,7 +192,7 @@ router.post('/:slug/submit', async (req, res) => {
         if (!val) return ''
         return `<tr><td style="padding:5px 0;color:#6B7280;font-size:13px;width:140px">${f.label}</td><td style="padding:5px 0;color:#1a1a2e;font-size:13px">${Array.isArray(val) ? val.join(', ') : val}</td></tr>`
       }).filter(Boolean).join('')
-      sendEmail({
+      sendEmailSafe({
         to: form.notify_email,
         subject: `[MUTCU] New Submission — ${form.title}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">

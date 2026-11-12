@@ -50,13 +50,18 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'))
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/health', (req, res) => res.json({
-  status: 'ok',
-  service: 'MUTCU Website API',
-  timestamp: new Date().toISOString(),
-  groq: !!process.env.GROQ_API_KEY,
-  brevo: !!process.env.BREVO_API_KEY,
-}))
+app.get('/health', async (req, res) => {
+  const { testEmailConfig } = require('./lib/email')
+  const emailDiag = await testEmailConfig()
+  res.json({
+    status: 'ok',
+    service: 'MUTCU Website API',
+    timestamp: new Date().toISOString(),
+    groq: !!process.env.GROQ_API_KEY,
+    brevo: !!process.env.BREVO_API_KEY,
+    email: emailDiag,
+  })
+})
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/admin', require('./routes/admin'))

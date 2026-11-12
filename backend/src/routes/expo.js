@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const supabase = require('../lib/supabase')
 const { authenticate, requireAdmin } = require('../middleware/auth')
-const { sendEmail } = require('../lib/email')
+const { sendEmail, sendEmailSafe } = require('../lib/email')
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phoneRegex = /^[\+\d\s\-\(\)]{7,20}$/
