@@ -21,6 +21,10 @@ export default function AdminNewsletter() {
   const [importing, setImporting] = useState(false)
   const [importResults, setImportResults] = useState(null)
   const importRef = useRef(null)
+  const [sendHistory, setSendHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('mutcu_newsletter_history') || '[]') } catch { return [] }
+  })
+  const [showHistory, setShowHistory] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -163,6 +167,18 @@ export default function AdminNewsletter() {
       const recipientIds = selectAll ? [] : selectedIds
       const res = await api.post('/admin/newsletter/send', { subject, body, recipientIds })
       toast.success(res.message || 'Newsletter sent!')
+      // Save to send history
+      const historyEntry = {
+        id: Date.now(),
+        subject,
+        sentAt: new Date().toISOString(),
+        recipients: recipientCount,
+        sent: res.sent || recipientCount,
+        failed: res.failed || 0,
+      }
+      const newHistory = [historyEntry, ...sendHistory].slice(0, 20) // keep last 20
+      setSendHistory(newHistory)
+      localStorage.setItem('mutcu_newsletter_history', JSON.stringify(newHistory))
       setShowCompose(false)
       setSubject('')
       setBody('')
@@ -200,11 +216,55 @@ export default function AdminNewsletter() {
             )}
             <input ref={importRef} type="file" accept=".csv,.txt" onChange={handleImportCSV} className="hidden" disabled={importing} />
           </label>
+          <button onClick={() => setShowHistory(!showHistory)} className="btn-outline btn-sm">
+            <i className="fas fa-history text-xs" /> History ({sendHistory.length})
+          </button>
           <button onClick={() => setShowCompose(true)} className="btn-primary btn-sm">
             <Send size={14} /> Send Newsletter
           </button>
         </div>
       </div>
+
+
+      {/* Send History Panel */}
+      {showHistory && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-montserrat font-bold text-navy text-sm flex items-center gap-2">
+              <i className="fas fa-history text-orange text-xs" /> Send History
+            </h3>
+            <button onClick={() => setShowHistory(false)} className="text-gray-400 hover:text-gray-600 text-xs font-montserrat font-semibold">Close</button>
+          </div>
+          {sendHistory.length === 0 ? (
+            <p className="text-gray-400 text-sm text-center py-4">No newsletters sent yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {sendHistory.map(h => (
+                <div key={h.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-montserrat font-bold text-navy text-sm truncate">{h.subject}</div>
+                    <div className="text-gray-400 text-xs mt-0.5">
+                      {new Date(h.sentAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0 text-xs font-montserrat">
+                    <span className="text-green-600 font-bold">{h.sent} sent</span>
+                    {h.failed > 0 && <span className="text-red-500">{h.failed} failed</span>}
+                    <span className="text-gray-400">{h.recipients} recipients</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {sendHistory.length > 0 && (
+            <button
+              onClick={() => { if (window.confirm('Clear send history?')) { setSendHistory([]); localStorage.removeItem('mutcu_newsletter_history') } }}
+              className="mt-3 text-xs text-red-400 hover:text-red-600 font-montserrat font-semibold">
+              Clear History
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ─── Compose Modal ─────────────────────────────────────────────────── */}
       {showCompose && (
