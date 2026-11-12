@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { newsletterAPI, blogsAPI } from '../../lib/api'
 import api from '../../lib/api'
 import toast from 'react-hot-toast'
-import { Trash2, Download, Newspaper, Send, X, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { Trash2, Download, Newspaper, Send, X, Check, ChevronDown, ChevronUp, Upload, FileSpreadsheet } from 'lucide-react'
 
 export default function AdminNewsletter() {
   const [subscribers, setSubscribers] = useState([])
@@ -18,6 +18,9 @@ export default function AdminNewsletter() {
   const [sending, setSending] = useState(false)
   const [showBlogPicker, setShowBlogPicker] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importResults, setImportResults] = useState(null)
+  const importRef = useRef(null)
 
   const load = () => {
     setLoading(true)
@@ -44,6 +47,66 @@ export default function AdminNewsletter() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = 'mutcu-newsletter-subscribers.csv'; a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const exportExcel = () => {
+    // Build a simple TSV that Excel opens natively
+    const rows = [
+      ['Email', 'Subscribed At', 'Active'],
+      ...subscribers.map(s => [
+        s.email,
+        s.subscribed_at ? new Date(s.subscribed_at).toLocaleDateString('en-GB') : '',
+        s.is_active ? 'Yes' : 'No',
+      ])
+    ]
+    const tsv = rows.map(r => r.join('\t')).join('\n')
+    const blob = new Blob([tsv], { type: 'application/vnd.ms-excel' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `mutcu-newsletter-subscribers-${new Date().toISOString().split('T')[0]}.xls`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast.success('Excel file downloaded!')
+  }
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+      return toast.error('Please upload a CSV file')
+    }
+    setImporting(true)
+    setImportResults(null)
+    try {
+      const text = await file.text()
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+      // Skip header row if it contains 'email'
+      const dataLines = lines[0]?.toLowerCase().includes('email') ? lines.slice(1) : lines
+      const emails = dataLines
+        .map(l => l.split(',')[0].replace(/"/g, '').trim().toLowerCase())
+        .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+
+      if (emails.length === 0) return toast.error('No valid email addresses found in the file')
+
+      let imported = 0, skipped = 0, failed = 0
+      for (const email of emails) {
+        try {
+          await newsletterAPI.subscribe(email)
+          imported++
+        } catch (err) {
+          if (err.message?.includes('already subscribed') || err.response?.status === 409) skipped++
+          else failed++
+        }
+      }
+      setImportResults({ imported, skipped, failed, total: emails.length })
+      toast.success(`Import complete: ${imported} added, ${skipped} already subscribed, ${failed} failed`)
+      load()
+    } catch (err) {
+      toast.error('Import failed: ' + err.message)
+    } finally {
+      setImporting(false)
+      if (importRef.current) importRef.current.value = ''
+    }
   }
 
   const toggleSubscriber = (id) => {
@@ -124,8 +187,19 @@ export default function AdminNewsletter() {
         </div>
         <div className="flex gap-2">
           <button onClick={exportCSV} className="btn-outline btn-sm">
-            <Download size={14} /> Export CSV
+            <Download size={14} /> CSV
           </button>
+          <button onClick={exportExcel} className="btn-outline btn-sm">
+            <FileSpreadsheet size={14} /> Excel
+          </button>
+          <label className="btn-outline btn-sm cursor-pointer">
+            {importing ? (
+              <><div className="w-3 h-3 rounded-full border-2 border-gray-400 border-t-navy animate-spin" />Importing...</>
+            ) : (
+              <><Upload size={14} />Import CSV</>
+            )}
+            <input ref={importRef} type="file" accept=".csv,.txt" onChange={handleImportCSV} className="hidden" disabled={importing} />
+          </label>
           <button onClick={() => setShowCompose(true)} className="btn-primary btn-sm">
             <Send size={14} /> Send Newsletter
           </button>
@@ -236,6 +310,19 @@ export default function AdminNewsletter() {
               <button onClick={() => setShowCompose(false)} className="btn-outline px-4">Cancel</button>
             </div>
           </div>
+        </div>
+      )}
+
+
+      {/* Import results banner */}
+      {importResults && (
+        <div className="mb-4 p-3 rounded-xl bg-green-50 border border-green-200 flex items-center justify-between gap-3">
+          <div className="text-xs font-montserrat font-semibold text-green-700">
+            Import complete: <strong>{importResults.imported}</strong> added · <strong>{importResults.skipped}</strong> already subscribed · <strong>{importResults.failed}</strong> failed · {importResults.total} total processed
+          </div>
+          <button onClick={() => setImportResults(null)} className="text-green-500 hover:text-green-700 flex-shrink-0">
+            <X size={14} />
+          </button>
         </div>
       )}
 
