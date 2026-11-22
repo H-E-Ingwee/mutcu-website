@@ -107,6 +107,8 @@ export const prayerAPI = {
   },
   updateStatus: (id, status) => api.put(`/prayer/${id}/status`, { status }),
   delete: (id) => api.delete(`/prayer/${id}`),
+  forward: (ids, coordinatorEmail, message) => api.post('/prayer/forward', { ids, coordinatorEmail, message }),
+  getDigest: () => api.get('/prayer/digest'),
 }
 
 export const newsletterAPI = {

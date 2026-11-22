@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -6,11 +6,12 @@ import {
   Mail, Heart, Users, LogOut, Globe, ChevronRight,
   Newspaper, BarChart2, Settings, Home, Church, Briefcase,
   ClipboardList, SlidersHorizontal, Menu, X, Shield, ScrollText,
-  CalendarDays
+  CalendarDays, Search
 } from 'lucide-react'
 import NotificationBell from '../components/admin/NotificationBell'
+import CommandPalette from '../components/admin/CommandPalette'
+import useAdminShortcuts from '../hooks/useAdminShortcuts'
 
-// ─── Full nav definition with page keys for RBAC ─────────────────────────────
 const NAV_SECTIONS = [
   {
     label: 'Overview',
@@ -68,21 +69,19 @@ const NAV_SECTIONS = [
   }
 ]
 
-// Role badge colours
 const ROLE_COLORS = {
-  super_admin:       'bg-orange/20 text-orange',
-  secretary:         'bg-blue-500/20 text-blue-300',
-  content_manager:   'bg-green-500/20 text-green-300',
-  blog_manager:      'bg-purple-500/20 text-purple-300',
-  gallery_manager:   'bg-teal/20 text-teal',
-  newsletter_manager:'bg-yellow-500/20 text-yellow-300',
-  prayer_manager:    'bg-red-500/20 text-red-300',
-  analytics_manager: 'bg-indigo-500/20 text-indigo-300',
-  expo_manager:      'bg-orange/20 text-orange',
+  super_admin:        'bg-orange/20 text-orange',
+  secretary:          'bg-blue-500/20 text-blue-300',
+  content_manager:    'bg-green-500/20 text-green-300',
+  blog_manager:       'bg-purple-500/20 text-purple-300',
+  gallery_manager:    'bg-teal/20 text-teal',
+  newsletter_manager: 'bg-yellow-500/20 text-yellow-300',
+  prayer_manager:     'bg-red-500/20 text-red-300',
+  analytics_manager:  'bg-indigo-500/20 text-indigo-300',
+  expo_manager:       'bg-orange/20 text-orange',
 }
 
 function SidebarContent({ isActive, onLinkClick, user, logout, canAccess, isSuperAdmin, websiteRole, getRoleLabel }) {
-  // Filter nav sections based on role
   const filteredSections = NAV_SECTIONS.map(section => ({
     ...section,
     items: section.items.filter(item => {
@@ -95,7 +94,6 @@ function SidebarContent({ isActive, onLinkClick, user, logout, canAccess, isSupe
 
   return (
     <>
-      {/* Logo */}
       <div className="p-5 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center gap-3">
           <img src="/assets/images/best logo.png" alt="MUTCU" className="h-8"
@@ -107,7 +105,6 @@ function SidebarContent({ isActive, onLinkClick, user, logout, canAccess, isSupe
         </div>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
         {filteredSections.map(section => (
           <div key={section.label}>
@@ -127,9 +124,7 @@ function SidebarContent({ isActive, onLinkClick, user, logout, canAccess, isSupe
         ))}
       </nav>
 
-      {/* User + Role + Actions */}
       <div className="p-3 border-t border-white/10 flex-shrink-0">
-        {/* Role badge */}
         <div className={`mx-3 mb-2 px-2.5 py-1.5 rounded-xl text-xs font-montserrat font-bold ${roleColor}`}>
           {getRoleLabel()}
         </div>
@@ -155,27 +150,40 @@ export default function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin())) navigate('/admin/login')
   }, [user, loading, isAdmin, navigate])
 
-  // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
-  // RBAC: check if current page is accessible
+  // RBAC page guard
   useEffect(() => {
     if (!loading && user && isAdmin()) {
       const pathParts = location.pathname.split('/').filter(Boolean)
-      const page = pathParts[1] || 'dashboard' // e.g. /admin/blogs → 'blogs'
-      // Super admin can access everything
+      const page = pathParts[1] || 'dashboard'
       if (isSuperAdmin()) return
-      // Check access
       if (page && page !== 'admin' && !canAccess(page)) {
         navigate('/admin?access=denied')
       }
     }
   }, [location.pathname, user, loading])
+
+  // Keyboard shortcuts
+  useAdminShortcuts({
+    onSearch: useCallback(() => setSearchOpen(true), []),
+    onNew: useCallback(() => {
+      // Navigate to "new" action for current page
+      const page = location.pathname.split('/')[2]
+      const newPaths = { events: '/admin/events', blogs: '/admin/blogs', gallery: '/admin/gallery' }
+      if (newPaths[page]) navigate(newPaths[page])
+    }, [location.pathname, navigate]),
+    onSave: useCallback(() => {
+      // Trigger save on any focused form — dispatch a custom event
+      document.dispatchEvent(new CustomEvent('admin:save'))
+    }, []),
+  })
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -186,12 +194,8 @@ export default function AdminLayout() {
   if (!user || !isAdmin()) return null
 
   const isActive = (path, end) => end ? location.pathname === path : location.pathname.startsWith(path)
-
-  // Breadcrumb
   const pathParts = location.pathname.split('/').filter(Boolean)
   const breadcrumb = pathParts.slice(1).map(p => p.replace(/-/g, ' ')).join(' / ') || 'Dashboard'
-
-  // Access denied banner
   const accessDenied = new URLSearchParams(location.search).get('access') === 'denied'
 
   return (
@@ -199,16 +203,8 @@ export default function AdminLayout() {
 
       {/* Desktop Sidebar */}
       <aside className="w-60 bg-navy flex-col flex-shrink-0 fixed top-0 left-0 bottom-0 z-40 overflow-y-auto hidden lg:flex">
-        <SidebarContent
-          isActive={isActive}
-          onLinkClick={() => {}}
-          user={user}
-          logout={logout}
-          canAccess={canAccess}
-          isSuperAdmin={isSuperAdmin}
-          websiteRole={websiteRole}
-          getRoleLabel={getRoleLabel}
-        />
+        <SidebarContent isActive={isActive} onLinkClick={() => {}} user={user} logout={logout}
+          canAccess={canAccess} isSuperAdmin={isSuperAdmin} websiteRole={websiteRole} getRoleLabel={getRoleLabel} />
       </aside>
 
       {/* Mobile Overlay */}
@@ -222,16 +218,8 @@ export default function AdminLayout() {
           className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all z-10">
           <X size={16} />
         </button>
-        <SidebarContent
-          isActive={isActive}
-          onLinkClick={() => setMobileOpen(false)}
-          user={user}
-          logout={logout}
-          canAccess={canAccess}
-          isSuperAdmin={isSuperAdmin}
-          websiteRole={websiteRole}
-          getRoleLabel={getRoleLabel}
-        />
+        <SidebarContent isActive={isActive} onLinkClick={() => setMobileOpen(false)} user={user} logout={logout}
+          canAccess={canAccess} isSuperAdmin={isSuperAdmin} websiteRole={websiteRole} getRoleLabel={getRoleLabel} />
       </aside>
 
       {/* Main Content */}
@@ -247,12 +235,20 @@ export default function AdminLayout() {
             <div className="flex items-center gap-2 text-sm text-gray-400">
               <span className="text-navy font-semibold hidden sm:block">Admin</span>
               <ChevronRight size={14} className="hidden sm:block" />
-              <span className="capitalize font-semibold text-gray-600 text-xs sm:text-sm truncate max-w-[160px] sm:max-w-none">{breadcrumb}</span>
+              <span className="capitalize font-semibold text-gray-600 text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">{breadcrumb}</span>
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
+            {/* Search button */}
+            <button onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-navy transition-colors text-xs font-montserrat font-semibold"
+              title="Search (Ctrl+K)">
+              <Search size={14} />
+              <span className="hidden sm:inline">Search</span>
+              <kbd className="hidden sm:flex items-center gap-0.5 px-1 py-0.5 rounded bg-white text-gray-400 text-xs border border-gray-200">⌘K</kbd>
+            </button>
             <a href="/" target="_blank" rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-orange transition-colors font-semibold mr-1">
+              className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-orange transition-colors font-semibold">
               <Globe size={13} />mutcu.org
             </a>
             <NotificationBell />
@@ -270,11 +266,17 @@ export default function AdminLayout() {
           </div>
         )}
 
+        {/* Keyboard shortcuts hint — shown once */}
+        <div id="shortcuts-hint" className="hidden" />
+
         {/* Page Content */}
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   )
 }

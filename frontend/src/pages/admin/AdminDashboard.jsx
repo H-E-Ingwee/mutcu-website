@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { adminAPI, expoAPI, formsAPI, contactAPI, prayerAPI, newsletterAPI } from '../../lib/api'
 import { useAuth } from '../../context/AuthContext'
+import OnboardingChecklist from '../../components/admin/OnboardingChecklist'
 import {
   Calendar, FileText, Image, Mail, Heart, Users,
   Settings, Home, BarChart2, Globe, ExternalLink,
@@ -57,6 +58,9 @@ export default function AdminDashboard() {
   const [recentActivity, setRecentActivity] = useState([])
   const [todaySummary, setTodaySummary] = useState(null)
   const [activityLoading, setActivityLoading] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return localStorage.getItem('mutcu_onboarding_dismissed') !== 'true'
+  })
 
   useEffect(() => {
     // Main stats
@@ -145,8 +149,17 @@ export default function AdminDashboard() {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
   }
 
+
   return (
     <div>
+      {/* Onboarding checklist */}
+      {showOnboarding && (
+        <OnboardingChecklist onDismiss={() => {
+          localStorage.setItem('mutcu_onboarding_dismissed', 'true')
+          setShowOnboarding(false)
+        }} />
+      )}
+
       {/* Welcome */}
       <div className="mb-6">
         <h1 className="font-montserrat font-black text-navy text-xl sm:text-2xl mb-1">
@@ -167,7 +180,7 @@ export default function AdminDashboard() {
             <HealthDot status={health[item.key]} />
             <span className="text-xs font-montserrat font-semibold text-gray-600">{item.label}</span>
             <span className={`text-xs font-montserrat font-bold ${health[item.key] === 'ok' ? 'text-green-600' : health[item.key] === 'error' ? 'text-red-500' : 'text-gray-400'}`}>
-              {health[item.key] === 'checking' ? '...' : health[item.key] === 'ok' ? '✓' : '✗'}
+              {health[item.key] === 'checking' ? '...' : health[item.key] === 'ok' ? 'ok' : 'err'}
             </span>
           </div>
         ))}
@@ -356,9 +369,9 @@ export default function AdminDashboard() {
           <ul className="space-y-2.5">
             {[
               { tip: 'Go to Homepage Manager to control hero slides and section visibility.', link: '/admin/homepage' },
-              { tip: 'Events marked as "Featured" (⭐) appear on the homepage.', link: '/admin/events' },
+              { tip: 'Events marked as "Featured" (star) appear on the homepage.', link: '/admin/events' },
               { tip: 'Blog posts must be set to "Published" to appear on the website.', link: '/admin/blogs' },
-              { tip: 'Test your email configuration in Settings → AI & Email tab.', link: '/admin/settings' },
+              { tip: 'Test your email configuration in Settings - AI & Email tab.', link: '/admin/settings' },
               { tip: 'Use Form Builder to create registration forms for any event.', link: '/admin/forms' },
               { tip: 'Expo page photos can be changed without code in Expo Settings.', link: '/admin/expo-settings' },
             ].map((item, i) => (

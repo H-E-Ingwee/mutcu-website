@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { blogsAPI } from '../../lib/api'
 import RichTextEditor from '../../components/RichTextEditor'
-import AIBlogAssistant from '../../components/AIBlogAssistant'
 import ImagePicker from '../../components/admin/ImagePicker'
 import toast from 'react-hot-toast'
 import { Plus, Edit2, Trash2, X, Check, Eye, EyeOff, FileText, Clock, Search, Copy, CheckSquare, Square } from 'lucide-react'
@@ -35,16 +34,47 @@ export default function AdminBlogs() {
 
   useEffect(() => { load() }, [])
 
-  const openAdd = () => { setForm(EMPTY); setPreview(false); setModal('add') }
-  const openEdit = (b) => { setForm({ ...EMPTY, ...b }); setPreview(false); setModal(b) }
+  // Auto-save draft to localStorage every 30 seconds
+  useEffect(() => {
+    if (!modal) return
+    const key = `mutcu_blog_draft_${modal === 'add' ? 'new' : modal.id}`
+    const timer = setInterval(() => {
+      if (form.title || form.content) {
+        localStorage.setItem(key, JSON.stringify({ ...form, _savedAt: new Date().toISOString() }))
+      }
+    }, 30000)
+    return () => clearInterval(timer)
+  }, [modal, form])
 
-  const handleDuplicate = async (b) => {
-    try {
-      const copy = { ...b, title: `${b.title} (Copy)`, slug: `${b.slug}-copy-${Date.now()}`, status: 'draft', published_at: null, id: undefined }
-      await blogsAPI.create(copy)
-      toast.success('Post duplicated as draft!')
-      load()
-    } catch (err) { toast.error(err.message || 'Failed to duplicate') }
+  const openAdd = () => {
+    const saved = localStorage.getItem('mutcu_blog_draft_new')
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved)
+        if (draft.title || draft.content) {
+          const restore = window.confirm(`Restore unsaved draft "${draft.title || 'Untitled'}" from ${new Date(draft._savedAt).toLocaleString('en-GB')}?`)
+          if (restore) { setForm({ ...EMPTY, ...draft }); setPreview(false); setModal('add'); return }
+          else localStorage.removeItem('mutcu_blog_draft_new')
+        }
+      } catch {}
+    }
+    setForm(EMPTY); setPreview(false); setModal('add')
+  }
+
+  const openEdit = (b) => {
+    const key = `mutcu_blog_draft_${b.id}`
+    const saved = localStorage.getItem(key)
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved)
+        if (draft.title !== b.title || draft.content !== b.content) {
+          const restore = window.confirm(`Restore unsaved changes to "${b.title}" from ${new Date(draft._savedAt).toLocaleString('en-GB')}?`)
+          if (restore) { setForm({ ...EMPTY, ...draft }); setPreview(false); setModal(b); return }
+          else localStorage.removeItem(key)
+        }
+      } catch {}
+    }
+    setForm({ ...EMPTY, ...b }); setPreview(false); setModal(b)
   }
 
   const handleTitleChange = (title) => {
@@ -57,8 +87,15 @@ export default function AdminBlogs() {
     if (!form.content || form.content === '<p></p>') return toast.error('Content is required')
     setSaving(true)
     try {
-      if (modal === 'add') { await blogsAPI.create(form); toast.success('Blog post created!') }
-      else { await blogsAPI.update(modal.id, form); toast.success('Blog post updated!') }
+      if (modal === 'add') {
+        await blogsAPI.create(form)
+        toast.success('Blog post created!')
+        localStorage.removeItem('mutcu_blog_draft_new')
+      } else {
+        await blogsAPI.update(modal.id, form)
+        toast.success('Blog post updated!')
+        localStorage.removeItem(`mutcu_blog_draft_${modal.id}`)
+      }
       setModal(null); load()
     } catch (err) { toast.error(err.message || 'Failed to save') }
     finally { setSaving(false) }
@@ -75,6 +112,24 @@ export default function AdminBlogs() {
         catch (err) { toast.error(err.message || 'Failed') }
       }
     })
+  }
+
+  const handleDuplicate = async (b) => {
+    try {
+      const copy = { ...b, title: `${b.title} (Copy)`, slug: `${b.slug}-copy-${Date.now()}`, status: 'draft', published_at: null, id: undefined }
+      await blogsAPI.create(copy)
+      toast.success('Post duplicated as draft!')
+      load()
+    } catch (err) { toast.error(err.message || 'Failed to duplicate') }
+  }
+
+  const toggleStatus = async (blog) => {
+    const newStatus = blog.status === 'published' ? 'draft' : 'published'
+    try {
+      await blogsAPI.update(blog.id, { status: newStatus })
+      toast.success(`Blog ${newStatus === 'published' ? 'published' : 'moved to draft'}`)
+      load()
+    } catch (err) { toast.error(err.message || 'Failed') }
   }
 
   const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
@@ -127,19 +182,15 @@ export default function AdminBlogs() {
     })
   }
 
-  const toggleStatus = async (blog) => {
-    const newStatus = blog.status === 'published' ? 'draft' : 'published'
-    try {
-      await blogsAPI.update(blog.id, { status: newStatus })
-      toast.success(`Blog ${newStatus === 'published' ? 'published ✓' : 'moved to draft'}`)
-      load()
-    } catch (err) { toast.error(err.message || 'Failed') }
-  }
+  const scheduled = blogs.filter(b => b.status === 'draft' && b.published_at && new Date(b.published_at) > new Date())
 
-  // Filtered + searched list
   const filtered = useMemo(() => {
     let list = blogs
-    if (statusFilter !== 'all') list = list.filter(b => b.status === statusFilter)
+    if (statusFilter === 'scheduled') {
+      list = list.filter(b => b.status === 'draft' && b.published_at && new Date(b.published_at) > new Date())
+    } else if (statusFilter !== 'all') {
+      list = list.filter(b => b.status === statusFilter)
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(b =>
@@ -164,6 +215,7 @@ export default function AdminBlogs() {
           <div className="flex items-center gap-3 mt-1">
             <span className="text-xs text-green-600 font-semibold flex items-center gap-1"><Eye size={11} />{published} published</span>
             <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={11} />{drafts} draft{drafts !== 1 ? 's' : ''}</span>
+            {scheduled.length > 0 && <span className="text-xs text-purple-600 font-semibold">Scheduled: {scheduled.length}</span>}
           </div>
         </div>
         <div className="flex gap-2 flex-wrap self-start sm:self-auto">
@@ -208,14 +260,12 @@ export default function AdminBlogs() {
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text" value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by title, author, or tag..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm font-lato focus:outline-none focus:border-orange transition-colors"
-          />
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm font-lato focus:outline-none focus:border-orange transition-colors" />
         </div>
         <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
-          {[['all', 'All'], ['published', 'Published'], ['draft', 'Drafts']].map(([val, label]) => (
+          {[['all', 'All'], ['published', 'Published'], ['draft', 'Drafts'], ['scheduled', 'Scheduled']].map(([val, label]) => (
             <button key={val} onClick={() => setStatusFilter(val)}
               className={`px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold transition-all whitespace-nowrap ${statusFilter === val ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
               {label}
@@ -244,63 +294,64 @@ export default function AdminBlogs() {
                 {filtered.map(b => {
                   const isSelected = selectedIds.includes(b.id)
                   return (
-                  <tr key={b.id}
-                    className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-orange/5' : ''}`}
-                    onClick={() => bulkMode && toggleSelect(b.id)}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        {bulkMode && (
-                          <div className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-orange border-orange' : 'border-gray-300'}`}>
-                            {isSelected && <Check size={9} className="text-white" />}
-                          </div>
-                        )}
-                        {/* Thumbnail */}
-                        {b.featured_image ? (
-                          <img src={b.featured_image} alt={b.title}
-                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0 hidden sm:block"
-                            onError={e => { e.target.style.display = 'none' }} />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 hidden sm:block">
-                            <FileText size={14} className="text-gray-300" />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <div className="font-semibold text-navy text-sm line-clamp-1">{b.title}</div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {b.tags && <span className="text-gray-400 text-xs line-clamp-1 hidden sm:block">{b.tags}</span>}
-                            <span className="text-gray-300 text-xs flex-shrink-0">{readingTime(b.content)} min read</span>
+                    <tr key={b.id}
+                      className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-orange/5' : ''}`}
+                      onClick={() => bulkMode && toggleSelect(b.id)}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          {bulkMode && (
+                            <div className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-orange border-orange' : 'border-gray-300'}`}>
+                              {isSelected && <Check size={9} className="text-white" />}
+                            </div>
+                          )}
+                          {b.featured_image ? (
+                            <img src={b.featured_image} alt={b.title}
+                              className="w-10 h-10 rounded-lg object-cover flex-shrink-0 hidden sm:block"
+                              onError={e => { e.target.style.display = 'none' }} />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 hidden sm:block">
+                              <FileText size={14} className="text-gray-300" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-semibold text-navy text-sm line-clamp-1">{b.title}</div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {b.tags && <span className="text-gray-400 text-xs line-clamp-1 hidden sm:block">{b.tags}</span>}
+                              <span className="text-gray-300 text-xs flex-shrink-0">{readingTime(b.content)} min read</span>
+                              {b.published_at && b.status === 'draft' && new Date(b.published_at) > new Date() && (
+                                <span className="text-purple-500 text-xs font-montserrat font-semibold flex-shrink-0">Scheduled</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-sm hidden sm:table-cell">{b.author || 'MUTCU'}</td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      <span className={b.status === 'published' ? 'px-2 py-0.5 rounded-lg text-xs font-bold bg-green-100 text-green-700' : 'px-2 py-0.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-500'}>
-                        {b.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
-                      {b.published_at ? new Date(b.published_at).toLocaleDateString('en-GB') : b.created_at ? new Date(b.created_at).toLocaleDateString('en-GB') : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => toggleStatus(b)} title={b.status === 'published' ? 'Unpublish' : 'Publish'}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors">
-                          {b.status === 'published' ? <EyeOff size={14} /> : <Eye size={14} />}
-                        </button>
-                        <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Edit">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDuplicate(b)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Duplicate">
-                          <Copy size={14} />
-                        </button>
-                        
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-sm hidden sm:table-cell">{b.author || 'MUTCU'}</td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <span className={b.status === 'published' ? 'px-2 py-0.5 rounded-lg text-xs font-bold bg-green-100 text-green-700' : 'px-2 py-0.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-500'}>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
+                        {b.published_at ? new Date(b.published_at).toLocaleDateString('en-GB') : b.created_at ? new Date(b.created_at).toLocaleDateString('en-GB') : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={e => { e.stopPropagation(); toggleStatus(b) }} title={b.status === 'published' ? 'Unpublish' : 'Publish'}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors">
+                            {b.status === 'published' ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); openEdit(b) }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Edit">
+                            <Edit2 size={14} />
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); handleDuplicate(b) }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Duplicate">
+                            <Copy size={14} />
+                          </button>
                           <button onClick={e => { e.stopPropagation(); handleDelete(b.id, b.title) }} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   )
                 })}
                 {filtered.length === 0 && (
@@ -323,10 +374,10 @@ export default function AdminBlogs() {
         </div>
       )}
 
-      
+      {/* Blog Editor Modal */}
+      {modal !== null && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-5xl my-2 sm:my-4 shadow-2xl">
-            {/* Modal Header */}
             <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-3xl z-10">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-orange/10 flex items-center justify-center flex-shrink-0">
@@ -334,7 +385,10 @@ export default function AdminBlogs() {
                 </div>
                 <div>
                   <h3 className="font-montserrat font-bold text-navy text-base">{modal === 'add' ? 'New Blog Post' : 'Edit Blog Post'}</h3>
-                  <p className="text-gray-400 text-xs">{form.status === 'published' ? '● Published' : '○ Draft'} · {readingTime(form.content)} min read</p>
+                  <p className="text-gray-400 text-xs">
+                    {form.status === 'published' ? 'Published' : 'Draft'} · {readingTime(form.content)} min read
+                    <span className="ml-2 text-gray-300">· Auto-saves every 30s</span>
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -448,6 +502,8 @@ export default function AdminBlogs() {
           </div>
         </div>
       )}
+
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

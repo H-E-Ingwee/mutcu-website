@@ -1,23 +1,29 @@
 import { useEffect, useState, useMemo } from 'react'
 import { prayerAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
-import { Trash2, Heart, Search, Download, CheckSquare, Lock, Globe } from 'lucide-react'
+import { Trash2, Heart, Search, Download, CheckSquare, Lock, Globe, Send, X, RefreshCw } from 'lucide-react'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const STATUS_COLORS = {
-  pending: 'bg-orange/10 text-orange border border-orange/20',
+  pending:    'bg-orange/10 text-orange border border-orange/20',
   prayed_for: 'bg-blue-100 text-blue-700',
-  answered: 'bg-green-100 text-green-700',
+  answered:   'bg-green-100 text-green-700',
 }
 
 export default function AdminPrayer() {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
-  const [visibilityFilter, setVisibilityFilter] = useState('all') // all | public | private
+  const [visibilityFilter, setVisibilityFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState([]) // ids for bulk actions
+  const [selected, setSelected] = useState([])
   const [bulkMarking, setBulkMarking] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [confirm, setConfirm] = useState(null)
+  const [forwardModal, setForwardModal] = useState(false)
+  const [forwardEmail, setForwardEmail] = useState('')
+  const [forwardMessage, setForwardMessage] = useState('')
+  const [forwarding, setForwarding] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -34,24 +40,25 @@ export default function AdminPrayer() {
     } catch (err) { toast.error(err.message || 'Failed') }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this prayer request?')) return
-    try {
-      await prayerAPI.delete(id)
-      toast.success('Deleted')
-      setRequests(prev => prev.filter(r => r.id !== id))
-      setSelected(prev => prev.filter(s => s !== id))
-    } catch (err) { toast.error(err.message || 'Failed') }
+  const handleDelete = (id) => {
+    setConfirm({
+      title: 'Delete Prayer Request?',
+      message: 'This prayer request will be permanently deleted.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await prayerAPI.delete(id)
+          toast.success('Deleted')
+          setRequests(prev => prev.filter(r => r.id !== id))
+          setSelected(prev => prev.filter(s => s !== id))
+        } catch (err) { toast.error(err.message || 'Failed') }
+      }
+    })
   }
 
-  const toggleSelect = (id) => {
-    setSelected(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
-  }
-
-  const selectAll = () => {
-    const ids = filtered.map(r => r.id)
-    setSelected(prev => prev.length === ids.length ? [] : ids)
-  }
+  const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  const selectAll = () => setSelected(prev => prev.length === filtered.length ? [] : filtered.map(r => r.id))
 
   const bulkMarkPrayed = async () => {
     if (selected.length === 0) return toast.error('Select at least one request')
@@ -63,6 +70,25 @@ export default function AdminPrayer() {
       setSelected([])
     } catch { toast.error('Failed to update') }
     finally { setBulkMarking(false) }
+  }
+
+  const handleForward = async (e) => {
+    e.preventDefault()
+    if (!forwardEmail.trim()) return toast.error('Please enter the coordinator email')
+    const idsToForward = selected.length > 0 ? selected : filtered.filter(r => r.status === 'pending').map(r => r.id)
+    if (idsToForward.length === 0) return toast.error('No pending requests to forward')
+    setForwarding(true)
+    try {
+      const res = await prayerAPI.forward(idsToForward, forwardEmail.trim(), forwardMessage.trim())
+      toast.success(res.message || 'Prayer requests forwarded!')
+      setForwardModal(false)
+      setForwardEmail('')
+      setForwardMessage('')
+      setSelected([])
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to forward. Check email configuration.')
+    } finally { setForwarding(false) }
   }
 
   const exportCSV = () => {
@@ -97,10 +123,7 @@ export default function AdminPrayer() {
     if (visibilityFilter === 'private') list = list.filter(r => !r.is_public)
     if (search.trim()) {
       const q = search.toLowerCase()
-      list = list.filter(r =>
-        r.name?.toLowerCase().includes(q) ||
-        r.request?.toLowerCase().includes(q)
-      )
+      list = list.filter(r => r.name?.toLowerCase().includes(q) || r.request?.toLowerCase().includes(q))
     }
     return list
   }, [requests, filter, visibilityFilter, search])
@@ -117,6 +140,14 @@ export default function AdminPrayer() {
           <p className="text-gray-400 text-sm mt-0.5">{pending} pending intercession · {requests.length} total</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {(selected.length > 0 || pending > 0) && (
+            <button onClick={() => setForwardModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-montserrat font-bold text-white transition-all"
+              style={{ background: '#04003D' }}>
+              <Send size={13} />
+              Forward to Prayer Ministry {selected.length > 0 ? `(${selected.length})` : `(${pending} pending)`}
+            </button>
+          )}
           {selected.length > 0 && (
             <button onClick={bulkMarkPrayed} disabled={bulkMarking}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-montserrat font-bold text-white transition-all disabled:opacity-60"
@@ -139,7 +170,6 @@ export default function AdminPrayer() {
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm font-lato focus:outline-none focus:border-orange transition-colors" />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {/* Status filter */}
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto">
             {[['all', 'All'], ['pending', 'Pending'], ['prayed_for', 'Prayed'], ['answered', 'Answered']].map(([val, label]) => (
               <button key={val} onClick={() => setFilter(val)}
@@ -148,7 +178,6 @@ export default function AdminPrayer() {
               </button>
             ))}
           </div>
-          {/* Visibility filter */}
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
             {[['all', 'All'], ['public', 'Public'], ['private', 'Private']].map(([val, label]) => (
               <button key={val} onClick={() => setVisibilityFilter(val)}
@@ -169,9 +198,7 @@ export default function AdminPrayer() {
               {allSelected ? 'Deselect all' : `Select all ${filtered.length}`}
             </span>
           </label>
-          {selected.length > 0 && (
-            <span className="text-xs text-orange font-montserrat font-bold">{selected.length} selected</span>
-          )}
+          {selected.length > 0 && <span className="text-xs text-orange font-montserrat font-bold">{selected.length} selected</span>}
         </div>
       )}
 
@@ -191,14 +218,11 @@ export default function AdminPrayer() {
             <div key={r.id} className={`bg-white rounded-2xl border transition-all ${selected.includes(r.id) ? 'border-orange/40 bg-orange/2' : 'border-gray-100'}`}>
               <div className="p-4 sm:p-5">
                 <div className="flex items-start gap-3">
-                  {/* Checkbox */}
                   <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggleSelect(r.id)}
                     className="w-4 h-4 accent-orange rounded mt-0.5 flex-shrink-0" />
-                  {/* Avatar */}
                   <div className="w-8 h-8 rounded-full bg-orange/10 flex items-center justify-center flex-shrink-0">
                     <Heart size={13} className="text-orange" />
                   </div>
-                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -243,6 +267,46 @@ export default function AdminPrayer() {
           Showing {filtered.length} of {requests.length} requests
         </div>
       )}
+
+      {/* Forward to Prayer Ministry Modal */}
+      {forwardModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setForwardModal(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h3 className="font-montserrat font-black text-navy text-base">Forward to Prayer Ministry</h3>
+                <p className="text-gray-400 text-xs mt-0.5">
+                  {selected.length > 0 ? `${selected.length} selected request${selected.length !== 1 ? 's' : ''}` : `${pending} pending request${pending !== 1 ? 's' : ''}`}
+                </p>
+              </div>
+              <button onClick={() => setForwardModal(false)} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-all"><X size={16} /></button>
+            </div>
+            <form onSubmit={handleForward} className="p-5 space-y-4">
+              <div>
+                <label className="form-label">Prayer Coordinator Email *</label>
+                <input type="email" className="form-input" value={forwardEmail}
+                  onChange={e => setForwardEmail(e.target.value)}
+                  placeholder="prayer.coordinator@mutcu.org" required autoFocus />
+                <p className="text-gray-400 text-xs mt-1">A formatted email with all selected prayer requests will be sent to this address.</p>
+              </div>
+              <div>
+                <label className="form-label">Message to Coordinator <span className="text-gray-400 font-normal">(optional)</span></label>
+                <textarea className="form-textarea" rows={3} value={forwardMessage}
+                  onChange={e => setForwardMessage(e.target.value)}
+                  placeholder="Any specific instructions or context for the prayer team..." />
+              </div>
+              <div className="flex gap-3">
+                <button type="submit" disabled={forwarding} className="btn-primary flex-1 justify-center">
+                  {forwarding ? <><RefreshCw size={13} className="animate-spin" />Sending...</> : <><Send size={13} />Forward Requests</>}
+                </button>
+                <button type="button" onClick={() => setForwardModal(false)} className="btn-outline flex-1 justify-center">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

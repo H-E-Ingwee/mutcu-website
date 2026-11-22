@@ -90,6 +90,26 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Internal server error' })
 })
 
+// ─── Scheduled Publishing Cron (runs every 5 minutes) ────────────────────────
+const supabase = require('./lib/supabase')
+setInterval(async () => {
+  try {
+    const now = new Date().toISOString()
+    const { data, error } = await supabase
+      .from('website_blogs')
+      .update({ status: 'published', updated_at: now })
+      .eq('status', 'draft')
+      .not('published_at', 'is', null)
+      .lte('published_at', now)
+      .select('id, title')
+    if (!error && data?.length > 0) {
+      console.log(`[SCHEDULER] Auto-published ${data.length} blog post(s):`, data.map(b => b.title).join(', '))
+    }
+  } catch (err) {
+    console.error('[SCHEDULER] Error:', err.message)
+  }
+}, 5 * 60 * 1000) // every 5 minutes
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5001
 app.listen(PORT, () => {
