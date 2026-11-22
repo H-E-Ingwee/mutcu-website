@@ -4,7 +4,8 @@ import RichTextEditor from '../../components/RichTextEditor'
 import AIBlogAssistant from '../../components/AIBlogAssistant'
 import ImagePicker from '../../components/admin/ImagePicker'
 import toast from 'react-hot-toast'
-import { Plus, Edit2, Trash2, X, Check, Eye, EyeOff, FileText, Clock, Search, Copy } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Check, Eye, EyeOff, FileText, Clock, Search, Copy, CheckSquare, Square } from 'lucide-react'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const EMPTY = { title: '', slug: '', excerpt: '', content: '', featured_image: '', author: '', status: 'draft', tags: '', published_at: '' }
 
@@ -23,6 +24,9 @@ export default function AdminBlogs() {
   const [preview, setPreview] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkMode, setBulkMode] = useState(false)
+  const [confirm, setConfirm] = useState(null)
 
   const load = () => {
     setLoading(true)
@@ -60,10 +64,67 @@ export default function AdminBlogs() {
     finally { setSaving(false) }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this blog post? This cannot be undone.')) return
-    try { await blogsAPI.delete(id); toast.success('Blog post deleted'); load() }
-    catch (err) { toast.error(err.message || 'Failed') }
+  const handleDelete = (id, title) => {
+    setConfirm({
+      title: 'Delete Blog Post?',
+      message: `"${title}" will be permanently deleted.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try { await blogsAPI.delete(id); toast.success('Blog post deleted'); load() }
+        catch (err) { toast.error(err.message || 'Failed') }
+      }
+    })
+  }
+
+  const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  const selectAll = () => setSelectedIds(prev => prev.length === filtered.length ? [] : filtered.map(b => b.id))
+
+  const bulkPublish = async (status) => {
+    if (selectedIds.length === 0) return toast.error('Select at least one post')
+    let done = 0
+    for (const id of selectedIds) {
+      try {
+        const updates = { status }
+        if (status === 'published') updates.published_at = new Date().toISOString()
+        await blogsAPI.update(id, updates); done++
+      } catch {}
+    }
+    toast.success(`${done} post${done !== 1 ? 's' : ''} ${status === 'published' ? 'published' : 'moved to draft'}`)
+    setSelectedIds([]); setBulkMode(false); load()
+  }
+
+  const bulkDeleteSelected = () => {
+    if (selectedIds.length === 0) return toast.error('Select at least one post')
+    setConfirm({
+      title: `Delete ${selectedIds.length} Post${selectedIds.length !== 1 ? 's' : ''}?`,
+      message: 'These blog posts will be permanently deleted.',
+      confirmLabel: `Delete ${selectedIds.length}`,
+      variant: 'danger',
+      onConfirm: async () => {
+        let done = 0
+        for (const id of selectedIds) { try { await blogsAPI.delete(id); done++ } catch {} }
+        toast.success(`${done} post${done !== 1 ? 's' : ''} deleted`)
+        setSelectedIds([]); setBulkMode(false); load()
+      }
+    })
+  }
+
+  const bulkDeleteDrafts = () => {
+    const draftIds = blogs.filter(b => b.status === 'draft').map(b => b.id)
+    if (draftIds.length === 0) return toast.error('No drafts to delete')
+    setConfirm({
+      title: `Delete ${draftIds.length} Draft${draftIds.length !== 1 ? 's' : ''}?`,
+      message: `All ${draftIds.length} draft posts will be permanently deleted.`,
+      confirmLabel: `Delete ${draftIds.length} Drafts`,
+      variant: 'danger',
+      onConfirm: async () => {
+        let done = 0
+        for (const id of draftIds) { try { await blogsAPI.delete(id); done++ } catch {} }
+        toast.success(`${done} draft${done !== 1 ? 's' : ''} deleted`)
+        load()
+      }
+    })
   }
 
   const toggleStatus = async (blog) => {
@@ -97,7 +158,7 @@ export default function AdminBlogs() {
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="font-montserrat font-black text-navy text-xl">Blog Management</h1>
           <div className="flex items-center gap-3 mt-1">
@@ -105,8 +166,43 @@ export default function AdminBlogs() {
             <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={11} />{drafts} draft{drafts !== 1 ? 's' : ''}</span>
           </div>
         </div>
-        <button onClick={openAdd} className="btn-primary btn-sm self-start sm:self-auto"><Plus size={14} /> New Post</button>
+        <div className="flex gap-2 flex-wrap self-start sm:self-auto">
+          <button onClick={() => { setBulkMode(!bulkMode); setSelectedIds([]) }}
+            className={`btn-sm flex items-center gap-1.5 ${bulkMode ? 'btn-primary' : 'btn-outline'}`}>
+            <CheckSquare size={13} /> {bulkMode ? 'Exit Select' : 'Select'}
+          </button>
+          {drafts > 0 && (
+            <button onClick={bulkDeleteDrafts} className="btn-outline btn-sm text-red-500 hover:text-red-600">
+              <Trash2 size={13} /> Clear Drafts
+            </button>
+          )}
+          <button onClick={openAdd} className="btn-primary btn-sm"><Plus size={14} /> New Post</button>
+        </div>
       </div>
+
+      {/* Bulk action bar */}
+      {bulkMode && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-2xl bg-navy/5 border border-navy/10">
+          <button onClick={selectAll} className="flex items-center gap-1.5 text-xs font-montserrat font-bold text-navy hover:text-orange transition-colors">
+            {selectedIds.length === filtered.length ? <CheckSquare size={13} /> : <Square size={13} />}
+            {selectedIds.length === filtered.length ? 'Deselect All' : `Select All (${filtered.length})`}
+          </button>
+          {selectedIds.length > 0 && (
+            <div className="flex items-center gap-2 ml-auto flex-wrap">
+              <span className="text-orange text-xs font-montserrat font-bold">{selectedIds.length} selected</span>
+              <button onClick={() => bulkPublish('published')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold text-white bg-green-500 hover:bg-green-600 transition-all">
+                <Eye size={11} /> Publish All
+              </button>
+              <button onClick={() => bulkPublish('draft')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold text-white bg-gray-500 hover:bg-gray-600 transition-all">
+                <EyeOff size={11} /> Move to Draft
+              </button>
+              <button onClick={bulkDeleteSelected} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold text-white bg-red-500 hover:bg-red-600 transition-all">
+                <Trash2 size={11} /> Delete {selectedIds.length}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search + filter bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -145,10 +241,19 @@ export default function AdminBlogs() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filtered.map(b => (
-                  <tr key={b.id} className="hover:bg-gray-50 transition-colors">
+                {filtered.map(b => {
+                  const isSelected = selectedIds.includes(b.id)
+                  return (
+                  <tr key={b.id}
+                    className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-orange/5' : ''}`}
+                    onClick={() => bulkMode && toggleSelect(b.id)}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
+                        {bulkMode && (
+                          <div className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-orange border-orange' : 'border-gray-300'}`}>
+                            {isSelected && <Check size={9} className="text-white" />}
+                          </div>
+                        )}
                         {/* Thumbnail */}
                         {b.featured_image ? (
                           <img src={b.featured_image} alt={b.title}
@@ -170,7 +275,7 @@ export default function AdminBlogs() {
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-sm hidden sm:table-cell">{b.author || 'MUTCU'}</td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${b.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      <span className={b.status === 'published' ? 'px-2 py-0.5 rounded-lg text-xs font-bold bg-green-100 text-green-700' : 'px-2 py-0.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-500'}>
                         {b.status}
                       </span>
                     </td>
@@ -189,13 +294,15 @@ export default function AdminBlogs() {
                         <button onClick={() => handleDuplicate(b)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Duplicate">
                           <Copy size={14} />
                         </button>
-                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
+                        
+                          <button onClick={e => { e.stopPropagation(); handleDelete(b.id, b.title) }} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
                           <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
                 {filtered.length === 0 && (
                   <tr><td colSpan={5} className="text-center py-16 text-gray-400">
                     <FileText size={40} className="mx-auto mb-3 opacity-30" />
@@ -216,8 +323,7 @@ export default function AdminBlogs() {
         </div>
       )}
 
-      {/* Blog Editor Modal */}
-      {modal !== null && (
+      
         <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-5xl my-2 sm:my-4 shadow-2xl">
             {/* Modal Header */}

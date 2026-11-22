@@ -5,8 +5,10 @@ import {
   LayoutDashboard, Calendar, FileText, Image, BookOpen,
   Mail, Heart, Users, LogOut, Globe, ChevronRight,
   Newspaper, BarChart2, Settings, Home, Church, Briefcase,
-  ClipboardList, SlidersHorizontal, Menu, X, Shield, ScrollText
+  ClipboardList, SlidersHorizontal, Menu, X, Shield, ScrollText,
+  CalendarDays
 } from 'lucide-react'
+import NotificationBell from '../components/admin/NotificationBell'
 
 // ─── Full nav definition with page keys for RBAC ─────────────────────────────
 const NAV_SECTIONS = [
@@ -15,6 +17,7 @@ const NAV_SECTIONS = [
     items: [
       { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true, page: 'dashboard' },
       { path: '/admin/analytics', label: 'Analytics', icon: BarChart2, page: 'analytics' },
+      { path: '/admin/calendar', label: 'Calendar', icon: CalendarDays, page: 'calendar' },
     ]
   },
   {
@@ -247,11 +250,12 @@ export default function AdminLayout() {
               <span className="capitalize font-semibold text-gray-600 text-xs sm:text-sm truncate max-w-[160px] sm:max-w-none">{breadcrumb}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-2">
             <a href="/" target="_blank" rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-orange transition-colors font-semibold">
+              className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-orange transition-colors font-semibold mr-1">
               <Globe size={13} />mutcu.org
             </a>
+            <NotificationBell />
             <div className="w-8 h-8 rounded-full bg-orange flex items-center justify-center text-white font-montserrat font-bold text-sm flex-shrink-0">
               {user.name?.charAt(0)?.toUpperCase()}
             </div>

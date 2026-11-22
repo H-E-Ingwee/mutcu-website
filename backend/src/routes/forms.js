@@ -3,6 +3,7 @@ const router = express.Router()
 const supabase = require('../lib/supabase')
 const { authenticate, requireAdmin } = require('../middleware/auth')
 const { sendEmailSafe } = require('../lib/email')
+const { createNotification } = require('./notifications')
 
 // ─── GET /api/forms — public: list open forms ─────────────────────────────────
 router.get('/', async (req, res) => {
@@ -208,6 +209,13 @@ router.post('/:slug/submit', async (req, res) => {
         </div>`,
       }).catch(e => console.error('[FORM ADMIN EMAIL]', e.message))
     }
+
+    createNotification({
+      type: 'form',
+      title: `New submission — ${form.title}`,
+      body: submitterName !== 'Participant' ? `From: ${submitterName}` : null,
+      link: `/admin/forms`,
+    }).catch(() => {})
 
     res.status(201).json({ message: form.success_message || 'Submission received!', id: submission.id })
   } catch (err) { res.status(500).json({ error: err.message }) }

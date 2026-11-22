@@ -183,6 +183,14 @@ export const adminAPI = {
   deleteTestimonial: (id) => api.delete(`/admin/testimonials/${id}`),
 }
 
+export const notificationsAPI = {
+  getAll: (limit = 20) => api.get(`/notifications?limit=${limit}`),
+  getCount: () => api.get('/notifications/count'),
+  markAllRead: () => api.put('/notifications/read-all', {}),
+  markRead: (id) => api.put(`/notifications/${id}/read`, {}),
+  clearRead: () => api.delete('/notifications/clear'),
+}
+
 export const adminUsersAPI = {
   // Website admin user management
   login: (email, password) => api.post('/admin-users/login', { email, password }),

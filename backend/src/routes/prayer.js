@@ -3,6 +3,7 @@ const router = express.Router()
 const supabase = require('../lib/supabase')
 const { authenticate, requireAdmin } = require('../middleware/auth')
 const { sendPrayerNotification } = require('../lib/email')
+const { createNotification } = require('./notifications')
 const { generatePrayerEncouragement } = require('../lib/gemini')
 
 // POST /api/prayer — submit prayer request (public)
@@ -21,6 +22,7 @@ router.post('/', async (req, res) => {
 
     // Notify admin (fire and forget)
     sendPrayerNotification({ name: name || 'Anonymous', request: request.trim() }).catch(() => {})
+    createNotification({ type: 'prayer', title: `New prayer request from ${name || 'Anonymous'}`, body: request.trim().slice(0, 100), link: '/admin/prayer' }).catch(() => {})
 
     // Generate encouragement with 8s timeout
     let encouragement = null

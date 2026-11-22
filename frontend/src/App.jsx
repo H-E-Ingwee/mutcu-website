@@ -73,6 +73,7 @@ import AdminForms from './pages/admin/AdminForms'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminAuditLog from './pages/admin/AdminAuditLog'
 import AcceptInvitePage from './pages/admin/AcceptInvitePage'
+import AdminCalendar from './pages/admin/AdminCalendar'
 import RegistrationsPage from './pages/RegistrationsPage'
 
 export default function App() {
@@ -103,6 +104,7 @@ export default function App() {
           <Route path="forms" element={<AdminForms />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="audit-log" element={<AdminAuditLog />} />
+          <Route path="calendar" element={<AdminCalendar />} />
         </Route>
 
         {/* Public Site */}

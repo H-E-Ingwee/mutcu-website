@@ -3,6 +3,7 @@ const router = express.Router()
 const supabase = require('../lib/supabase')
 const { authenticate, requireAdmin } = require('../middleware/auth')
 const { sendEmail, sendEmailSafe } = require('../lib/email')
+const { createNotification } = require('./notifications')
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phoneRegex = /^[\+\d\s\-\(\)]{7,20}$/
@@ -168,6 +169,13 @@ router.post('/register', async (req, res) => {
         </div>
       </div>`,
     })
+
+    createNotification({
+      type: 'expo',
+      title: `New Expo ${isPitcher ? 'Pitcher' : 'Attendee'} — ${full_name.trim()}`,
+      body: isPitcher ? `Business: ${business_name?.trim() || 'N/A'}` : `Registered as attendee`,
+      link: '/admin/expo-registrations',
+    }).catch(() => {})
 
     res.status(201).json({
       message: isPitcher

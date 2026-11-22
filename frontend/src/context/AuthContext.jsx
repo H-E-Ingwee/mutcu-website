@@ -15,7 +15,7 @@ export const ROLE_PERMISSIONS = {
   secretary: {
     label: 'CU Secretary',
     pages: [
-      'dashboard', 'analytics', 'contacts', 'prayer', 'newsletter',
+      'dashboard', 'analytics', 'calendar', 'contacts', 'prayer', 'newsletter',
       'leadership', 'settings', 'forms', 'homepage', 'events',
       'blogs', 'gallery', 'resources', 'ministries',
     ],
@@ -25,7 +25,7 @@ export const ROLE_PERMISSIONS = {
   content_manager: {
     label: 'Content & Events Manager',
     pages: [
-      'dashboard', 'analytics', 'homepage', 'events', 'leadership',
+      'dashboard', 'analytics', 'calendar', 'homepage', 'events', 'leadership',
       'ministries', 'resources', 'blogs', 'gallery', 'forms',
     ],
     canManageUsers: false,

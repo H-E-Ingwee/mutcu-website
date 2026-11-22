@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from 'react'
 import { eventsAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
-import { Plus, Edit2, Trash2, X, Check, Star, Search, Copy, Calendar } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Check, Star, Search, Copy, Calendar, CheckSquare, Square, EyeOff, Eye } from 'lucide-react'
 import ImagePicker from '../../components/admin/ImagePicker'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const SERVICE_TYPES = ['SUNDAY', 'FRIDAY', 'SPECIAL', 'OUTREACH', 'TRAINING']
 const EMPTY = { title: '', description: '', date: '', time: '', location: '', image_url: '', service_type: 'SUNDAY', speaker: '', is_active: true, is_featured: false }
@@ -23,7 +24,10 @@ export default function AdminEvents() {
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [timeFilter, setTimeFilter] = useState('all') // all | upcoming | past
+  const [timeFilter, setTimeFilter] = useState('all')
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkMode, setBulkMode] = useState(false)
+  const [confirm, setConfirm] = useState(null)
 
   const load = () => {
     setLoading(true)
@@ -55,10 +59,63 @@ export default function AdminEvents() {
     finally { setSaving(false) }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this event?')) return
-    try { await eventsAPI.delete(id); toast.success('Event deleted'); load() }
-    catch (err) { toast.error(err.message || 'Failed') }
+  const handleDelete = (id, title) => {
+    setConfirm({
+      title: 'Delete Event?',
+      message: `"${title}" will be permanently deleted.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try { await eventsAPI.delete(id); toast.success('Event deleted'); load() }
+        catch (err) { toast.error(err.message || 'Failed') }
+      }
+    })
+  }
+
+  const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  const selectAll = () => setSelectedIds(prev => prev.length === filtered.length ? [] : filtered.map(e => e.id))
+
+  const bulkActivate = async (active) => {
+    if (selectedIds.length === 0) return toast.error('Select at least one event')
+    let done = 0
+    for (const id of selectedIds) {
+      try { await eventsAPI.update(id, { is_active: active }); done++ } catch {}
+    }
+    toast.success(`${done} event${done !== 1 ? 's' : ''} ${active ? 'activated' : 'deactivated'}`)
+    setSelectedIds([]); setBulkMode(false); load()
+  }
+
+  const bulkDeletePast = () => {
+    const pastIds = events.filter(e => e.date < today).map(e => e.id)
+    if (pastIds.length === 0) return toast.error('No past events to delete')
+    setConfirm({
+      title: `Delete ${pastIds.length} Past Events?`,
+      message: `All ${pastIds.length} events before today will be permanently deleted.`,
+      confirmLabel: `Delete ${pastIds.length}`,
+      variant: 'danger',
+      onConfirm: async () => {
+        let done = 0
+        for (const id of pastIds) { try { await eventsAPI.delete(id); done++ } catch {} }
+        toast.success(`${done} past events deleted`)
+        load()
+      }
+    })
+  }
+
+  const bulkDeleteSelected = () => {
+    if (selectedIds.length === 0) return toast.error('Select at least one event')
+    setConfirm({
+      title: `Delete ${selectedIds.length} Event${selectedIds.length !== 1 ? 's' : ''}?`,
+      message: 'These events will be permanently deleted.',
+      confirmLabel: `Delete ${selectedIds.length}`,
+      variant: 'danger',
+      onConfirm: async () => {
+        let done = 0
+        for (const id of selectedIds) { try { await eventsAPI.delete(id); done++ } catch {} }
+        toast.success(`${done} event${done !== 1 ? 's' : ''} deleted`)
+        setSelectedIds([]); setBulkMode(false); load()
+      }
+    })
   }
 
   const toggleFeatured = async (ev) => {
@@ -89,7 +146,7 @@ export default function AdminEvents() {
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="font-montserrat font-black text-navy text-xl">Events Management</h1>
           <div className="flex items-center gap-3 mt-1">
@@ -98,8 +155,41 @@ export default function AdminEvents() {
             <span className="text-xs text-gray-400">{events.length} total</span>
           </div>
         </div>
-        <button onClick={openAdd} className="btn-primary btn-sm self-start sm:self-auto"><Plus size={14} /> Add Event</button>
+        <div className="flex gap-2 flex-wrap self-start sm:self-auto">
+          <button onClick={() => { setBulkMode(!bulkMode); setSelectedIds([]) }}
+            className={`btn-sm flex items-center gap-1.5 ${bulkMode ? 'btn-primary' : 'btn-outline'}`}>
+            <CheckSquare size={13} /> {bulkMode ? 'Exit Select' : 'Select'}
+          </button>
+          <button onClick={bulkDeletePast} className="btn-outline btn-sm text-red-500 hover:text-red-600">
+            <Trash2 size={13} /> Clear Past
+          </button>
+          <button onClick={openAdd} className="btn-primary btn-sm"><Plus size={14} /> Add Event</button>
+        </div>
       </div>
+
+      {/* Bulk action bar */}
+      {bulkMode && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-2xl bg-navy/5 border border-navy/10">
+          <button onClick={selectAll} className="flex items-center gap-1.5 text-xs font-montserrat font-bold text-navy hover:text-orange transition-colors">
+            {selectedIds.length === filtered.length ? <CheckSquare size={13} /> : <Square size={13} />}
+            {selectedIds.length === filtered.length ? 'Deselect All' : `Select All (${filtered.length})`}
+          </button>
+          {selectedIds.length > 0 && (
+            <div className="flex items-center gap-2 ml-auto flex-wrap">
+              <span className="text-orange text-xs font-montserrat font-bold">{selectedIds.length} selected</span>
+              <button onClick={() => bulkActivate(true)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold text-white bg-green-500 hover:bg-green-600 transition-all">
+                <Eye size={11} /> Activate
+              </button>
+              <button onClick={() => bulkActivate(false)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold text-white bg-gray-500 hover:bg-gray-600 transition-all">
+                <EyeOff size={11} /> Deactivate
+              </button>
+              <button onClick={bulkDeleteSelected} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold text-white bg-red-500 hover:bg-red-600 transition-all">
+                <Trash2 size={11} /> Delete {selectedIds.length}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search + filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -148,10 +238,18 @@ export default function AdminEvents() {
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(ev => {
                   const isPast = ev.date < today
+                  const isSelected = selectedIds.includes(ev.id)
                   return (
-                    <tr key={ev.id} className={`hover:bg-gray-50 transition-colors ${isPast ? 'opacity-60' : ''}`}>
+                    <tr key={ev.id}
+                      className={`hover:bg-gray-50 transition-colors ${isPast ? 'opacity-60' : ''} ${isSelected ? 'bg-orange/5' : ''}`}
+                      onClick={() => bulkMode && toggleSelect(ev.id)}>
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-navy text-sm line-clamp-1">{ev.title}</div>
+                        {bulkMode && (
+                          <div className={`inline-flex w-4 h-4 rounded border-2 items-center justify-center mr-2 flex-shrink-0 ${isSelected ? 'bg-orange border-orange' : 'border-gray-300'}`}>
+                            {isSelected && <Check size={9} className="text-white" />}
+                          </div>
+                        )}
+                        <span className="font-semibold text-navy text-sm">{ev.title}</span>
                         {ev.location && <div className="text-gray-400 text-xs mt-0.5 hidden sm:block">{ev.location}</div>}
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
@@ -177,7 +275,7 @@ export default function AdminEvents() {
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => openEdit(ev)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Edit"><Edit2 size={13} /></button>
                           <button onClick={() => handleDuplicate(ev)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Duplicate"><Copy size={13} /></button>
-                          <button onClick={() => handleDelete(ev.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete"><Trash2 size={13} /></button>
+                          <button onClick={e => { e.stopPropagation(); handleDelete(ev.id, ev.title) }} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -202,8 +300,7 @@ export default function AdminEvents() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
-      {modal !== null && (
+      
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setModal(null)}>
           <div className="bg-white rounded-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-3xl z-10">

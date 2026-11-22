@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { galleryAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, X, Check, Upload, Edit2, Images } from 'lucide-react'
+import { Plus, Trash2, X, Check, Upload, Edit2, Images, CheckSquare, Square, Tag } from 'lucide-react'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const CATEGORIES = [
   'worship', 'outreach', 'fellowship', 'events', 'ministry', 'business-expo', 'general'
@@ -31,6 +32,10 @@ export default function AdminGallery() {
   const [uploading, setUploading] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
   const [lightbox, setLightbox] = useState(null)
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkMode, setBulkMode] = useState(false)
+  const [bulkCategory, setBulkCategory] = useState('')
+  const [confirm, setConfirm] = useState(null)
   const fileRef = useRef(null)
 
   const load = () => {
@@ -94,10 +99,54 @@ export default function AdminGallery() {
     finally { setSaving(false) }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this photo? This cannot be undone.')) return
-    try { await galleryAPI.delete(id); toast.success('Photo deleted'); load() }
-    catch (err) { toast.error(err.message || 'Failed') }
+  const handleDelete = (id, title) => {
+    setConfirm({
+      title: 'Delete Photo?',
+      message: `"${title || 'This photo'}" will be permanently deleted.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try { await galleryAPI.delete(id); toast.success('Photo deleted'); load() }
+        catch (err) { toast.error(err.message || 'Failed') }
+      }
+    })
+  }
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  }
+
+  const selectAll = () => {
+    setSelectedIds(prev => prev.length === filtered.length ? [] : filtered.map(g => g.id))
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return toast.error('Select at least one photo')
+    setConfirm({
+      title: `Delete ${selectedIds.length} Photo${selectedIds.length !== 1 ? 's' : ''}?`,
+      message: 'These photos will be permanently deleted. This cannot be undone.',
+      confirmLabel: `Delete ${selectedIds.length}`,
+      variant: 'danger',
+      onConfirm: async () => {
+        let deleted = 0
+        for (const id of selectedIds) {
+          try { await galleryAPI.delete(id); deleted++ } catch {}
+        }
+        toast.success(`${deleted} photo${deleted !== 1 ? 's' : ''} deleted`)
+        setSelectedIds([]); setBulkMode(false); load()
+      }
+    })
+  }
+
+  const handleBulkCategoryChange = async () => {
+    if (!bulkCategory) return toast.error('Select a category first')
+    if (selectedIds.length === 0) return toast.error('Select at least one photo')
+    let updated = 0
+    for (const id of selectedIds) {
+      try { await galleryAPI.update(id, { category: bulkCategory }); updated++ } catch {}
+    }
+    toast.success(`${updated} photo${updated !== 1 ? 's' : ''} moved to "${CATEGORY_LABELS[bulkCategory] || bulkCategory}"`)
+    setSelectedIds([]); setBulkMode(false); setBulkCategory(''); load()
   }
 
   const isEditing = modal && modal !== 'add'
@@ -105,15 +154,55 @@ export default function AdminGallery() {
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="font-montserrat font-black text-navy text-xl">Gallery Management</h1>
           <p className="text-gray-400 text-sm mt-0.5">{gallery.length} photos across {CATEGORIES.filter(c => counts[c] > 0).length} categories</p>
         </div>
-        <button onClick={openAdd} className="btn-primary btn-sm self-start sm:self-auto">
-          <Plus size={14} /> Add Photo
-        </button>
+        <div className="flex gap-2 flex-wrap self-start sm:self-auto">
+          <button onClick={() => { setBulkMode(!bulkMode); setSelectedIds([]) }}
+            className={`btn-sm flex items-center gap-1.5 ${bulkMode ? 'btn-primary' : 'btn-outline'}`}>
+            <CheckSquare size={13} /> {bulkMode ? 'Exit Select' : 'Select'}
+          </button>
+          <button onClick={openAdd} className="btn-primary btn-sm">
+            <Plus size={14} /> Add Photo
+          </button>
+        </div>
       </div>
+
+      {/* Bulk action bar */}
+      {bulkMode && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-2xl bg-navy/5 border border-navy/10">
+          <button onClick={selectAll}
+            className="flex items-center gap-1.5 text-xs font-montserrat font-bold text-navy hover:text-orange transition-colors">
+            {selectedIds.length === filtered.length ? <CheckSquare size={13} /> : <Square size={13} />}
+            {selectedIds.length === filtered.length ? 'Deselect All' : `Select All (${filtered.length})`}
+          </button>
+          {selectedIds.length > 0 && (
+            <>
+              <span className="text-orange text-xs font-montserrat font-bold">{selectedIds.length} selected</span>
+              <div className="flex items-center gap-2 ml-auto flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}
+                    className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs font-montserrat font-semibold focus:outline-none focus:border-orange">
+                    <option value="">Move to category...</option>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
+                  </select>
+                  <button onClick={handleBulkCategoryChange} disabled={!bulkCategory}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold text-white disabled:opacity-50 transition-all"
+                    style={{ background: '#FF9700' }}>
+                    <Tag size={11} /> Move
+                  </button>
+                </div>
+                <button onClick={handleBulkDelete}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-montserrat font-bold text-white bg-red-500 hover:bg-red-600 transition-all">
+                  <Trash2 size={11} /> Delete {selectedIds.length}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Category filter tabs — scrollable on mobile */}
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
@@ -145,44 +234,48 @@ export default function AdminGallery() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {filtered.map(item => (
-            <div key={item.id} className="relative group rounded-xl overflow-hidden bg-gray-100 aspect-square">
-              <img
-                src={item.image_url} alt={item.title || 'Gallery'}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                onError={e => { e.target.style.background = '#e5e7eb'; e.target.style.display = 'none' }}
-              />
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all duration-200 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100">
-                {item.title && (
-                  <span className="text-white text-xs font-montserrat font-semibold text-center line-clamp-2 px-1">{item.title}</span>
+          {filtered.map(item => {
+            const isSelected = selectedIds.includes(item.id)
+            return (
+              <div key={item.id}
+                className={`relative group rounded-xl overflow-hidden bg-gray-100 aspect-square ${bulkMode ? 'cursor-pointer' : ''} ${isSelected ? 'ring-2 ring-orange ring-offset-1' : ''}`}
+                onClick={() => bulkMode && toggleSelect(item.id)}>
+                <img
+                  src={item.image_url} alt={item.title || 'Gallery'}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={e => { e.target.style.background = '#e5e7eb'; e.target.style.display = 'none' }}
+                />
+                {/* Bulk select checkbox */}
+                {bulkMode && (
+                  <div className={`absolute top-2 left-2 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-orange border-orange' : 'bg-white/80 border-gray-300'}`}>
+                    {isSelected && <Check size={11} className="text-white" />}
+                  </div>
                 )}
-                <span className={`text-xs font-montserrat font-bold px-2 py-0.5 rounded-full capitalize ${CATEGORY_COLORS[item.category] || 'bg-gray-100 text-gray-600'}`}>
-                  {CATEGORY_LABELS[item.category] || item.category}
-                </span>
-                <div className="flex gap-2 mt-1">
-                  <button
-                    onClick={() => setLightbox(item)}
-                    className="p-1.5 rounded-lg bg-white/20 hover:bg-white/40 text-white transition-colors"
-                    title="View full size">
-                    <i className="fas fa-expand text-xs" />
-                  </button>
-                  <button
-                    onClick={() => openEdit(item)}
-                    className="p-1.5 rounded-lg bg-white/20 hover:bg-white/40 text-white transition-colors"
-                    title="Edit">
-                    <Edit2 size={12} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white transition-colors"
-                    title="Delete">
-                    <Trash2 size={12} />
-                  </button>
-                </div>
+                {/* Hover overlay — only in non-bulk mode */}
+                {!bulkMode && (
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all duration-200 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100">
+                    {item.title && (
+                      <span className="text-white text-xs font-montserrat font-semibold text-center line-clamp-2 px-1">{item.title}</span>
+                    )}
+                    <span className={`text-xs font-montserrat font-bold px-2 py-0.5 rounded-full capitalize ${CATEGORY_COLORS[item.category] || 'bg-gray-100 text-gray-600'}`}>
+                      {CATEGORY_LABELS[item.category] || item.category}
+                    </span>
+                    <div className="flex gap-2 mt-1">
+                      <button onClick={() => setLightbox(item)} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/40 text-white transition-colors" title="View full size">
+                        <i className="fas fa-expand text-xs" />
+                      </button>
+                      <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/40 text-white transition-colors" title="Edit">
+                        <Edit2 size={12} />
+                      </button>
+                      <button onClick={() => handleDelete(item.id, item.title)} className="p-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white transition-colors" title="Delete">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -291,8 +384,7 @@ export default function AdminGallery() {
         </div>
       )}
 
-      {/* Lightbox */}
-      {lightbox && (
+      
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
           <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all" onClick={() => setLightbox(null)}>
             <X size={18} />

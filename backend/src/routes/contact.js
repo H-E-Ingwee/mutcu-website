@@ -3,6 +3,7 @@ const router = express.Router()
 const supabase = require('../lib/supabase')
 const { authenticate, requireAdmin } = require('../middleware/auth')
 const { sendContactNotification, sendEmailSafe } = require('../lib/email')
+const { createNotification } = require('./notifications')
 const { generateContactReply } = require('../lib/gemini')
 
 router.post('/', async (req, res) => {
@@ -21,6 +22,7 @@ router.post('/', async (req, res) => {
     if (error) throw error
 
     sendContactNotification({ name: name.trim(), email: email.trim(), subject: subject.trim(), message: message.trim() }).catch(() => {})
+    createNotification({ type: 'contact', title: `New message from ${name.trim()}`, body: subject.trim(), link: '/admin/contacts' }).catch(() => {})
 
     // AI auto-reply (non-blocking)
     ;(async () => {
