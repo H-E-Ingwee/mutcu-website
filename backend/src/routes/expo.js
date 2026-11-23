@@ -139,10 +139,9 @@ router.post('/register', async (req, res) => {
       html: buildConfirmationHtml({ full_name: full_name.trim(), participation_type, business_name: business_name?.trim() }),
     })
 
-    // Admin notification (fire and forget)
-    const adminEmail = process.env.ADMIN_EMAIL || 'mutcunion@gmail.com'
-    sendExpoEmail({
-      to: adminEmail,
+    // Notify admin/expo managers
+    sendEmailSafe({
+      to: process.env.ADMIN_EMAIL || 'mutcunion@gmail.com',
       subject: `[MUTCU Expo 2027] New ${isPitcher ? 'Pitcher' : 'Attendee'} — ${full_name.trim()}`,
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
         <div style="background:linear-gradient(135deg,#04003D,#0a0060);padding:24px 32px">
