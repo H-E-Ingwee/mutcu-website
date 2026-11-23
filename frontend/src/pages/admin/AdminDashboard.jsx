@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { adminAPI, expoAPI, formsAPI } from '../../lib/api'
 import { useAuth } from '../../context/AuthContext'
-import OnboardingChecklist from '../../components/admin/OnboardingChecklist'
 import {
   Calendar, FileText, Image, Mail, Heart, Users,
   Settings, Home, BarChart2, Globe, ExternalLink,
@@ -105,9 +104,6 @@ export default function AdminDashboard() {
   const [recentActivity, setRecentActivity] = useState([])
   const [todaySummary, setTodaySummary] = useState(null)
   const [activityLoading, setActivityLoading] = useState(true)
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    return localStorage.getItem('mutcu_onboarding_dismissed') !== 'true'
-  })
   const [shortcutsHintDismissed, setShortcutsHintDismissed] = useState(() => {
     return localStorage.getItem('mutcu_shortcuts_seen') === 'true'
   })
@@ -204,14 +200,6 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      {/* Onboarding checklist — only for super admin */}
-      {showOnboarding && isSuperAdmin() && (
-        <OnboardingChecklist onDismiss={() => {
-          localStorage.setItem('mutcu_onboarding_dismissed', 'true')
-          setShowOnboarding(false)
-        }} />
-      )}
-
       {/* Keyboard shortcuts hint */}
       {!shortcutsHintDismissed && (
         <div className="mb-5 p-3 rounded-xl bg-navy/5 border border-navy/10 flex items-center justify-between gap-3">

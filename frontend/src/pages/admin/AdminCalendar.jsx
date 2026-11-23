@@ -84,13 +84,28 @@ export default function AdminCalendar() {
     return map
   }, [events, blogs])
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = (() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })()
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
   const goToday = () => { setCurrentDate(new Date()); setSelectedDay(today) }
 
-  const getDateKey = (date) => date.toISOString().split('T')[0]
+  // Use local date to avoid timezone shift (Kenya is UTC+3)
+  const getDateKey = (date) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+  // Parse a date string like '2026-09-06' as LOCAL date (not UTC)
+  const parseLocalDate = (dateStr) => {
+    if (!dateStr) return null
+    const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
+    return new Date(y, m - 1, d)
+  }
 
   const selectedDayContent = selectedDay ? (contentByDate[selectedDay] || []) : []
 
@@ -308,10 +323,10 @@ export default function AdminCalendar() {
                 .slice(0, 5)
                 .map((ev, i) => (
                   <div key={i} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition-colors"
-                    onClick={() => { setSelectedDay(ev.date.split('T')[0]); setCurrentDate(new Date(ev.date)) }}>
+                    onClick={() => { const d = parseLocalDate(ev.date); setSelectedDay(getDateKey(d)); setCurrentDate(d) }}>
                     <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 flex-col">
-                      <div className="font-montserrat font-black text-blue-600 text-xs leading-none">{new Date(ev.date).getDate()}</div>
-                      <div className="text-blue-400 font-montserrat" style={{ fontSize: '9px' }}>{new Date(ev.date).toLocaleDateString('en-GB', { month: 'short' })}</div>
+                      <div className="font-montserrat font-black text-blue-600 text-xs leading-none">{parseLocalDate(ev.date)?.getDate()}</div>
+                      <div className="text-blue-400 font-montserrat" style={{ fontSize: '9px' }}>{parseLocalDate(ev.date)?.toLocaleDateString('en-GB', { month: 'short' })}</div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-montserrat font-semibold text-navy text-xs truncate">{ev.title}</div>

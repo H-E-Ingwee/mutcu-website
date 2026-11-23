@@ -81,13 +81,17 @@ export default function AdminUsers() {
   const [saving, setSaving] = useState(false)
   const [resending, setResending] = useState(null)
 
+  const [setupRequired, setSetupRequired] = useState(false)
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const data = await adminUsersAPI.getAll()
       setUsers(data.users || [])
+      if (data.setupRequired) setSetupRequired(true)
     } catch (err) {
-      toast.error('Failed to load admin users')
+      console.error('Failed to load admin users:', err.message)
+      toast.error('Failed to load admin users. Check that the database migration has been run.')
     } finally {
       setLoading(false)
     }
@@ -235,6 +239,19 @@ export default function AdminUsers() {
           </button>
         </div>
       </div>
+
+      {/* Setup required banner */}
+      {setupRequired && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-5 flex items-start gap-3">
+          <AlertCircle size={16} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-montserrat font-bold text-yellow-700 text-sm mb-1">Database Setup Required</p>
+            <p className="text-yellow-600 text-xs leading-relaxed">
+              The <code className="bg-yellow-100 px-1 rounded">website_admin_users</code> table does not exist yet. Run the SQL from the schema.sql file in Supabase SQL Editor to enable this feature.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Info banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-5 text-xs text-blue-700 flex items-start gap-2">

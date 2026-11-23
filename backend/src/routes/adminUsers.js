@@ -25,16 +25,20 @@ async function requireSuperWebAdmin(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' })
   // DMS super_admin / ec_admin always have full access
   if (['super_admin', 'ec_admin'].includes(req.user.role)) return next()
-  // Check website_admin_users table
-  const { data } = await supabase
-    .from('website_admin_users')
-    .select('website_role, is_active')
-    .eq('email', req.user.email)
-    .single()
-  if (!data || !data.is_active || data.website_role !== 'super_admin') {
-    return res.status(403).json({ error: 'Super admin access required' })
+  // Website admin with super_admin role in JWT
+  if (req.user.role === 'website_admin' && req.user.website_role === 'super_admin') return next()
+  // Check website_admin_users table as fallback
+  try {
+    const { data } = await supabase
+      .from('website_admin_users')
+      .select('website_role, is_active')
+      .eq('email', req.user.email)
+      .single()
+    if (data?.is_active && data?.website_role === 'super_admin') return next()
+  } catch (err) {
+    console.error('[requireSuperWebAdmin] DB check failed:', err.message)
   }
-  next()
+  return res.status(403).json({ error: 'Super admin access required' })
 }
 
 // ─── Audit log helper ─────────────────────────────────────────────────────────
@@ -66,10 +70,21 @@ router.get('/roles', authenticate, (req, res) => {
 // ─── GET /api/admin-users — list all website admin users ─────────────────────
 router.get('/', authenticate, requireSuperWebAdmin, async (req, res) => {
   try {
-    
-    if (error) throw error
+    const { data, error } = await supabase
+      .from('website_admin_users')
+      .select('id, email, name, website_role, secondary_role, is_active, invite_accepted, last_login_at, created_at, invited_by')
+      .order('created_at', { ascending: false })
+    if (error) {
+      if (error.message?.includes('does not exist') || error.code === '42P01') {
+        return res.json({ users: [], setupRequired: true, message: 'Run schema.sql migration in Supabase to enable this feature.' })
+      }
+      throw error
+    }
     res.json({ users: data || [] })
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) {
+    console.error('[ADMIN USERS GET]', err.message)
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // ─── POST /api/admin-users/invite — invite a new admin user ──────────────────
