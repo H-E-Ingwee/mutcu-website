@@ -391,7 +391,7 @@ export default function AdminGallery() {
         </div>
       )}
 
-      
+      {lightbox && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
           <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all" onClick={() => setLightbox(null)}>
             <X size={18} />
@@ -407,6 +407,7 @@ export default function AdminGallery() {
           </div>
         </div>
       )}
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

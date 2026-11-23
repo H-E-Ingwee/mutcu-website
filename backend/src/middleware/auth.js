@@ -18,7 +18,10 @@ function authenticate(req, res, next) {
 
 function requireAdmin(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' })
+  // DMS roles
   const adminRoles = ['super_admin', 'ec_admin', 'cu_secretary', 'admin']
+  // Website admin users have role: 'website_admin' — always allow
+  if (req.user.role === 'website_admin') return next()
   if (!adminRoles.includes(req.user.role)) {
     return res.status(403).json({ error: 'Admin access required' })
   }

@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { adminAPI, eventsAPI, blogsAPI, galleryAPI, contactAPI, prayerAPI, newsletterAPI, expoAPI, formsAPI } from '../../lib/api'
 import { BarChart2, Users, Mail, Heart, Image, Calendar, FileText, Newspaper, TrendingUp, Briefcase, ClipboardList, ExternalLink, AlertCircle, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 // ─── Simple CSS bar chart ─────────────────────────────────────────────────────
 function BarChart({ data, color = '#FF9700', height = 80 }) {
@@ -62,6 +63,7 @@ const DATE_RANGES = [
 ]
 
 export default function AdminAnalytics() {
+  const { websiteRole, isSuperAdmin } = useAuth()
   const [stats, setStats] = useState(null)
   const [contacts, setContacts] = useState([])
   const [prayers, setPrayers] = useState([])
@@ -195,14 +197,17 @@ export default function AdminAnalytics() {
   const topBlogs = [...blogs].filter(b => b.status === 'published').sort((a, b) => new Date(b.published_at || b.created_at) - new Date(a.published_at || a.created_at)).slice(0, 5)
   const nextEvents = events.filter(e => e.date >= today).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 5)
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange" />
-    </div>
-  )
 
   return (
     <div>
+      {/* Role notice for non-super-admins */}
+      {!isSuperAdmin() && (
+        <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-700 font-montserrat font-semibold flex items-center gap-2">
+          <BarChart2 size={13} />
+          Showing analytics relevant to your role.
+        </div>
+      )}
+
       {/* Header + date range */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>

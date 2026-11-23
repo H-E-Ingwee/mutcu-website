@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { adminAPI, expoAPI, formsAPI } from '../../lib/api'
 import { useAuth } from '../../context/AuthContext'
@@ -8,7 +8,7 @@ import {
   Settings, Home, BarChart2, Globe, ExternalLink,
   Newspaper, Church, TrendingUp, ArrowRight, Briefcase,
   ClipboardList, SlidersHorizontal, CheckCircle, XCircle,
-  Zap, Database, RefreshCw, Activity, Sun
+  Zap, Database, RefreshCw, Activity, Sun, Shield
 } from 'lucide-react'
 
 function StatCard({ label, value, icon: Icon, color, bg, link, sub }) {
@@ -30,26 +30,73 @@ function HealthDot({ status }) {
   return <div className="w-2 h-2 rounded-full bg-red-400" />
 }
 
-const QUICK_ACTIONS = [
-  { label: 'Homepage', icon: Home, link: '/admin/homepage', color: 'bg-indigo-500', desc: 'Hero, events, sections' },
-  { label: 'Add Event', icon: Calendar, link: '/admin/events', color: 'bg-blue-500', desc: 'Services & activities' },
-  { label: 'Write Blog', icon: FileText, link: '/admin/blogs', color: 'bg-purple-500', desc: 'WYSIWYG editor' },
-  { label: 'Gallery', icon: Image, link: '/admin/gallery', color: 'bg-green-500', desc: 'Upload photos' },
-  { label: 'Leadership', icon: Users, link: '/admin/leadership', color: 'bg-navy', desc: 'EC roster & bios' },
-  { label: 'Expo Regs', icon: Briefcase, link: '/admin/expo-registrations', color: 'bg-orange', desc: 'Registrations' },
-  { label: 'Form Builder', icon: ClipboardList, link: '/admin/forms', color: 'bg-teal', desc: 'Create forms' },
-  { label: 'Settings', icon: Settings, link: '/admin/settings', color: 'bg-gray-600', desc: 'Site config' },
-]
-
-const CMS_FEATURES = [
-  { icon: Home, title: 'Homepage Manager', desc: 'Control hero slides, featured events, testimonials, and section visibility — all without code.', link: '/admin/homepage', color: 'text-indigo-500' },
-  { icon: BarChart2, title: 'Analytics Dashboard', desc: 'Track form submissions, content stats, prayer requests, newsletter growth, and expo registrations.', link: '/admin/analytics', color: 'text-teal' },
-  { icon: Briefcase, title: 'Expo Registrations', desc: 'Manage Business Expo attendees and pitchers. Export to Excel or PDF.', link: '/admin/expo-registrations', color: 'text-orange' },
-  { icon: ClipboardList, title: 'Form Builder', desc: 'Create registration forms for any event. Submissions saved to Supabase, exportable as Excel/PDF.', link: '/admin/forms', color: 'text-purple-500' },
-]
+// Role-specific quick actions
+const ROLE_QUICK_ACTIONS = {
+  super_admin: [
+    { label: 'Homepage', icon: Home, link: '/admin/homepage', color: 'bg-indigo-500', desc: 'Hero, events, sections' },
+    { label: 'Add Event', icon: Calendar, link: '/admin/events', color: 'bg-blue-500', desc: 'Services & activities' },
+    { label: 'Write Blog', icon: FileText, link: '/admin/blogs', color: 'bg-purple-500', desc: 'WYSIWYG editor' },
+    { label: 'Gallery', icon: Image, link: '/admin/gallery', color: 'bg-green-500', desc: 'Upload photos' },
+    { label: 'Leadership', icon: Users, link: '/admin/leadership', color: 'bg-navy', desc: 'EC roster & bios' },
+    { label: 'Expo Regs', icon: Briefcase, link: '/admin/expo-registrations', color: 'bg-orange', desc: 'Registrations' },
+    { label: 'Form Builder', icon: ClipboardList, link: '/admin/forms', color: 'bg-teal', desc: 'Create forms' },
+    { label: 'Settings', icon: Settings, link: '/admin/settings', color: 'bg-gray-600', desc: 'Site config' },
+  ],
+  secretary: [
+    { label: 'Messages', icon: Mail, link: '/admin/contacts', color: 'bg-orange', desc: 'Contact inbox' },
+    { label: 'Prayer', icon: Heart, link: '/admin/prayer', color: 'bg-red-500', desc: 'Prayer requests' },
+    { label: 'Newsletter', icon: Newspaper, link: '/admin/newsletter', color: 'bg-teal', desc: 'Subscribers' },
+    { label: 'Leadership', icon: Users, link: '/admin/leadership', color: 'bg-navy', desc: 'EC roster' },
+    { label: 'Events', icon: Calendar, link: '/admin/events', color: 'bg-blue-500', desc: 'Programs' },
+    { label: 'Blogs', icon: FileText, link: '/admin/blogs', color: 'bg-purple-500', desc: 'Articles' },
+    { label: 'Forms', icon: ClipboardList, link: '/admin/forms', color: 'bg-teal', desc: 'Registrations' },
+    { label: 'Settings', icon: Settings, link: '/admin/settings', color: 'bg-gray-600', desc: 'Site config' },
+  ],
+  content_manager: [
+    { label: 'Homepage', icon: Home, link: '/admin/homepage', color: 'bg-indigo-500', desc: 'Hero & sections' },
+    { label: 'Events', icon: Calendar, link: '/admin/events', color: 'bg-blue-500', desc: 'Add events' },
+    { label: 'Blogs', icon: FileText, link: '/admin/blogs', color: 'bg-purple-500', desc: 'Write articles' },
+    { label: 'Gallery', icon: Image, link: '/admin/gallery', color: 'bg-green-500', desc: 'Upload photos' },
+    { label: 'Leadership', icon: Users, link: '/admin/leadership', color: 'bg-navy', desc: 'EC profiles' },
+    { label: 'Ministries', icon: Church, link: '/admin/ministries', color: 'bg-indigo-500', desc: 'Ministry info' },
+    { label: 'Resources', icon: BarChart2, link: '/admin/resources', color: 'bg-teal', desc: 'Documents' },
+    { label: 'Forms', icon: ClipboardList, link: '/admin/forms', color: 'bg-orange', desc: 'Create forms' },
+  ],
+  blog_manager: [
+    { label: 'Write Blog', icon: FileText, link: '/admin/blogs', color: 'bg-purple-500', desc: 'New article' },
+    { label: 'Gallery', icon: Image, link: '/admin/gallery', color: 'bg-green-500', desc: 'Upload photos' },
+    { label: 'Analytics', icon: BarChart2, link: '/admin/analytics', color: 'bg-teal', desc: 'Blog stats' },
+    { label: 'Forms', icon: ClipboardList, link: '/admin/forms', color: 'bg-orange', desc: 'Create forms' },
+  ],
+  gallery_manager: [
+    { label: 'Upload Photo', icon: Image, link: '/admin/gallery', color: 'bg-green-500', desc: 'Add to gallery' },
+    { label: 'Forms', icon: ClipboardList, link: '/admin/forms', color: 'bg-orange', desc: 'Create forms' },
+  ],
+  newsletter_manager: [
+    { label: 'Newsletter', icon: Newspaper, link: '/admin/newsletter', color: 'bg-teal', desc: 'Send updates' },
+    { label: 'Analytics', icon: BarChart2, link: '/admin/analytics', color: 'bg-blue-500', desc: 'Subscriber stats' },
+    { label: 'Forms', icon: ClipboardList, link: '/admin/forms', color: 'bg-orange', desc: 'Create forms' },
+  ],
+  prayer_manager: [
+    { label: 'Prayer', icon: Heart, link: '/admin/prayer', color: 'bg-red-500', desc: 'Prayer requests' },
+    { label: 'Messages', icon: Mail, link: '/admin/contacts', color: 'bg-orange', desc: 'Contact inbox' },
+    { label: 'Forms', icon: ClipboardList, link: '/admin/forms', color: 'bg-teal', desc: 'Create forms' },
+  ],
+  analytics_manager: [
+    { label: 'Analytics', icon: BarChart2, link: '/admin/analytics', color: 'bg-teal', desc: 'Full stats' },
+    { label: 'Settings', icon: Settings, link: '/admin/settings', color: 'bg-gray-600', desc: 'SEO settings' },
+    { label: 'Forms', icon: ClipboardList, link: '/admin/forms', color: 'bg-orange', desc: 'Create forms' },
+  ],
+  expo_manager: [
+    { label: 'Expo Regs', icon: Briefcase, link: '/admin/expo-registrations', color: 'bg-orange', desc: 'Registrations' },
+    { label: 'Expo Photos', icon: SlidersHorizontal, link: '/admin/expo-settings', color: 'bg-indigo-500', desc: 'Page photos' },
+    { label: 'Forms', icon: ClipboardList, link: '/admin/forms', color: 'bg-teal', desc: 'Create forms' },
+    { label: 'Analytics', icon: BarChart2, link: '/admin/analytics', color: 'bg-blue-500', desc: 'Stats' },
+  ],
+}
 
 export default function AdminDashboard() {
-  const { user } = useAuth()
+  const { user, websiteRole, getRoleLabel, isSuperAdmin } = useAuth()
   const [stats, setStats] = useState(null)
   const [expoStats, setExpoStats] = useState(null)
   const [formCount, setFormCount] = useState(null)
@@ -66,29 +113,25 @@ export default function AdminDashboard() {
   })
 
   useEffect(() => {
-    // Main stats
     adminAPI.dashboard()
       .then(data => setStats(data.stats))
       .catch(() => {})
       .finally(() => setLoading(false))
 
-    // Expo stats
-    expoAPI.getStats()
-      .then(data => setExpoStats(data))
-      .catch(() => setExpoStats(null))
+    if (websiteRole === 'expo_manager' || isSuperAdmin()) {
+      expoAPI.getStats().then(data => setExpoStats(data)).catch(() => {})
+    }
 
-    // Forms count
-    formsAPI.getAllAdmin()
-      .then(data => setFormCount((data.forms || []).filter(f => f.status === 'open').length))
-      .catch(() => setFormCount(null))
+    if (isSuperAdmin()) {
+      formsAPI.getAllAdmin().then(data => setFormCount((data.forms || []).filter(f => f.status === 'open').length)).catch(() => {})
+    }
 
-    // Health check
-    fetch('/api/health')
-      .then(r => r.json())
-      .then(data => setHealth({ brevo: data.brevo ? 'ok' : 'error', ai: data.groq ? 'ok' : 'error', db: 'ok' }))
-      .catch(() => setHealth({ brevo: 'error', ai: 'error', db: 'error' }))
+    if (isSuperAdmin()) {
+      fetch('/api/health').then(r => r.json())
+        .then(data => setHealth({ brevo: data.brevo ? 'ok' : 'error', ai: data.groq ? 'ok' : 'error', db: 'ok' }))
+        .catch(() => setHealth({ brevo: 'error', ai: 'error', db: 'error' }))
+    }
 
-    // Recent activity — uses efficient dedicated endpoint
     adminAPI.recentActivity()
       .then(data => {
         const TYPE_CONFIG = {
@@ -103,23 +146,28 @@ export default function AdminDashboard() {
           color: TYPE_CONFIG[a.type]?.color || 'text-gray-500',
           bg: TYPE_CONFIG[a.type]?.bg || 'bg-gray-100',
         }))
-        setRecentActivity(activities)
+        // Filter activity by role
+        const roleActivityFilter = {
+          prayer_manager: ['prayer', 'contact'],
+          newsletter_manager: ['subscriber'],
+          expo_manager: ['expo'],
+          blog_manager: [],
+          gallery_manager: [],
+          analytics_manager: [],
+        }
+        const filter = roleActivityFilter[websiteRole]
+        setRecentActivity(filter ? activities.filter(a => filter.includes(a.type)) : activities)
       })
       .catch(() => {})
       .finally(() => setActivityLoading(false))
 
-    // Today summary from dashboard stats
     adminAPI.dashboard()
       .then(data => {
         const s = data.stats || {}
-        setTodaySummary({
-          todayContacts: 0, todayPrayers: 0, todaySubs: 0, todayExpo: 0,
-          pendingPrayers: s.pendingPrayers || 0,
-          newMessages: s.newContacts || 0,
-        })
+        setTodaySummary({ pendingPrayers: s.pendingPrayers || 0, newMessages: s.newContacts || 0 })
       })
       .catch(() => {})
-  }, [])
+  }, [websiteRole])
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
@@ -135,11 +183,27 @@ export default function AdminDashboard() {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
   }
 
+  const quickActions = ROLE_QUICK_ACTIONS[websiteRole] || ROLE_QUICK_ACTIONS.super_admin
+
+  // Role-specific stat cards
+  const getStatCards = () => {
+    const all = [
+      { label: 'Active Events', value: loading ? '...' : stats?.events, icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-50', link: '/admin/events', sub: 'this semester', roles: ['super_admin','secretary','content_manager'] },
+      { label: 'Published Blogs', value: loading ? '...' : stats?.blogs, icon: FileText, color: 'text-purple-500', bg: 'bg-purple-50', link: '/admin/blogs', sub: 'live articles', roles: ['super_admin','secretary','content_manager','blog_manager'] },
+      { label: 'Gallery Photos', value: loading ? '...' : stats?.gallery, icon: Image, color: 'text-green-500', bg: 'bg-green-50', link: '/admin/gallery', sub: 'in collection', roles: ['super_admin','content_manager','blog_manager','gallery_manager'] },
+      { label: 'Subscribers', value: loading ? '...' : stats?.subscribers, icon: Newspaper, color: 'text-teal', bg: 'bg-teal/10', link: '/admin/newsletter', sub: 'newsletter', roles: ['super_admin','secretary','newsletter_manager'] },
+      { label: 'New Messages', value: loading ? '...' : stats?.newContacts, icon: Mail, color: 'text-orange', bg: 'bg-orange/10', link: '/admin/contacts', sub: 'unread', roles: ['super_admin','secretary','prayer_manager'] },
+      { label: 'Prayer Requests', value: loading ? '...' : stats?.pendingPrayers, icon: Heart, color: 'text-red-500', bg: 'bg-red-50', link: '/admin/prayer', sub: 'pending', roles: ['super_admin','secretary','prayer_manager'] },
+      { label: 'Leaders', value: loading ? '...' : stats?.leaders, icon: Users, color: 'text-navy', bg: 'bg-navy/10', link: '/admin/leadership', sub: 'EC + Patrons', roles: ['super_admin','secretary','content_manager'] },
+      { label: 'Ministries', value: loading ? '...' : (stats?.ministries ?? 10), icon: Church, color: 'text-indigo-500', bg: 'bg-indigo-50', link: '/admin/ministries', sub: 'all active', roles: ['super_admin','content_manager'] },
+    ]
+    return all.filter(s => s.roles.includes(websiteRole) || isSuperAdmin())
+  }
 
   return (
     <div>
-      {/* Onboarding checklist */}
-      {showOnboarding && (
+      {/* Onboarding checklist — only for super admin */}
+      {showOnboarding && isSuperAdmin() && (
         <OnboardingChecklist onDismiss={() => {
           localStorage.setItem('mutcu_onboarding_dismissed', 'true')
           setShowOnboarding(false)
@@ -165,120 +229,139 @@ export default function AdminDashboard() {
       {/* Welcome */}
       <div className="mb-6">
         <h1 className="font-montserrat font-black text-navy text-xl sm:text-2xl mb-1">
-          {greeting}, {user?.name?.split(' ')[0]} 👋
+          {greeting}, {user?.name?.split(' ')[0]}!
         </h1>
-        <p className="text-gray-400 text-sm">MUTCU Website CMS — manage your website content, events, and communications.</p>
+        <p className="text-gray-400 text-sm">
+          {getRoleLabel()} — MUTCU Website CMS
+        </p>
       </div>
 
-      {/* System health strip */}
-      <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 mb-6 flex flex-wrap items-center gap-4 sm:gap-6">
-        <span className="text-xs font-montserrat font-bold text-gray-400 uppercase tracking-wider">System Status</span>
-        {[
-          { label: 'Database', key: 'db', icon: Database },
-          { label: 'Email (Brevo)', key: 'brevo', icon: Mail },
-          { label: 'AI (Groq)', key: 'ai', icon: Zap },
-        ].map(item => (
-          <div key={item.key} className="flex items-center gap-1.5">
-            <HealthDot status={health[item.key]} />
-            <span className="text-xs font-montserrat font-semibold text-gray-600">{item.label}</span>
-            <span className={`text-xs font-montserrat font-bold ${health[item.key] === 'ok' ? 'text-green-600' : health[item.key] === 'error' ? 'text-red-500' : 'text-gray-400'}`}>
-              {health[item.key] === 'checking' ? '...' : health[item.key] === 'ok' ? 'ok' : 'err'}
-            </span>
-          </div>
-        ))}
-        {(health.brevo === 'error' || health.ai === 'error') && (
-          <Link to="/admin/settings" className="ml-auto text-xs font-montserrat font-semibold text-orange hover:underline flex items-center gap-1">
-            <Settings size={11} /> Fix in Settings
-          </Link>
-        )}
-      </div>
+      {/* System health — super admin only */}
+      {isSuperAdmin() && (
+        <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 mb-6 flex flex-wrap items-center gap-4 sm:gap-6">
+          <span className="text-xs font-montserrat font-bold text-gray-400 uppercase tracking-wider">System Status</span>
+          {[
+            { label: 'Database', key: 'db', icon: Database },
+            { label: 'Email (Brevo)', key: 'brevo', icon: Mail },
+            { label: 'AI (Groq)', key: 'ai', icon: Zap },
+          ].map(item => (
+            <div key={item.key} className="flex items-center gap-1.5">
+              <HealthDot status={health[item.key]} />
+              <span className="text-xs font-montserrat font-semibold text-gray-600">{item.label}</span>
+              <span className={`text-xs font-montserrat font-bold ${health[item.key] === 'ok' ? 'text-green-600' : health[item.key] === 'error' ? 'text-red-500' : 'text-gray-400'}`}>
+                {health[item.key] === 'checking' ? '...' : health[item.key] === 'ok' ? 'OK' : 'ERR'}
+              </span>
+            </div>
+          ))}
+          {(health.brevo === 'error' || health.ai === 'error') && (
+            <Link to="/admin/settings" className="ml-auto text-xs font-montserrat font-semibold text-orange hover:underline flex items-center gap-1">
+              <Settings size={11} /> Fix in Settings
+            </Link>
+          )}
+        </div>
+      )}
 
-      {/* Today's summary */}
-      {todaySummary && (todaySummary.todayContacts > 0 || todaySummary.todayPrayers > 0 || todaySummary.todaySubs > 0 || todaySummary.todayExpo > 0 || todaySummary.newMessages > 0 || todaySummary.pendingPrayers > 0) && (
+      {/* Today summary — role-filtered */}
+      {todaySummary && (todaySummary.newMessages > 0 || todaySummary.pendingPrayers > 0) && (
+        ['super_admin','secretary','prayer_manager'].includes(websiteRole) || isSuperAdmin()
+      ) && (
         <div className="bg-gradient-to-r from-navy to-navy-light rounded-2xl p-4 sm:p-5 mb-6 text-white">
           <div className="flex items-center gap-2 mb-3">
             <Sun size={16} className="text-orange" />
-            <h2 className="font-montserrat font-bold text-white text-sm">Today at a Glance</h2>
-            <span className="text-white/40 text-xs font-montserrat">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+            <h2 className="font-montserrat font-bold text-white text-sm">Needs Attention</h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { label: 'New Messages', value: todaySummary.todayContacts, icon: Mail, link: '/admin/contacts', highlight: todaySummary.todayContacts > 0 },
-              { label: 'Unread Messages', value: todaySummary.newMessages, icon: Mail, link: '/admin/contacts', highlight: todaySummary.newMessages > 0 },
-              { label: 'Prayer Requests', value: todaySummary.todayPrayers, icon: Heart, link: '/admin/prayer', highlight: todaySummary.todayPrayers > 0 },
-              { label: 'Pending Prayers', value: todaySummary.pendingPrayers, icon: Heart, link: '/admin/prayer', highlight: todaySummary.pendingPrayers > 0 },
-              { label: 'New Subscribers', value: todaySummary.todaySubs, icon: Newspaper, link: '/admin/newsletter', highlight: todaySummary.todaySubs > 0 },
-              { label: 'Expo Registrations', value: todaySummary.todayExpo, icon: Briefcase, link: '/admin/expo-registrations', highlight: todaySummary.todayExpo > 0 },
-            ].filter(s => s.value > 0).map((s, i) => (
-              <Link key={i} to={s.link} className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all text-center">
-                <s.icon size={14} className={s.highlight ? 'text-orange' : 'text-white/50'} />
-                <div className={`font-montserrat font-black text-lg ${s.highlight ? 'text-orange' : 'text-white/60'}`}>{s.value}</div>
-                <div className="text-white/60 text-xs font-montserrat leading-tight">{s.label}</div>
+          <div className="flex flex-wrap gap-3">
+            {todaySummary.newMessages > 0 && (
+              <Link to="/admin/contacts" className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all text-center">
+                <Mail size={14} className="text-orange" />
+                <div className="font-montserrat font-black text-lg text-orange">{todaySummary.newMessages}</div>
+                <div className="text-white/60 text-xs font-montserrat">Unread Messages</div>
               </Link>
-            ))}
+            )}
+            {todaySummary.pendingPrayers > 0 && (
+              <Link to="/admin/prayer" className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all text-center">
+                <Heart size={14} className="text-red-400" />
+                <div className="font-montserrat font-black text-lg text-red-400">{todaySummary.pendingPrayers}</div>
+                <div className="text-white/60 text-xs font-montserrat">Pending Prayers</div>
+              </Link>
+            )}
           </div>
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <StatCard label="Active Events" value={loading ? '...' : stats?.events} icon={Calendar} color="text-blue-500" bg="bg-blue-50" link="/admin/events" sub="this semester" />
-        <StatCard label="Published Blogs" value={loading ? '...' : stats?.blogs} icon={FileText} color="text-purple-500" bg="bg-purple-50" link="/admin/blogs" sub="live articles" />
-        <StatCard label="Gallery Photos" value={loading ? '...' : stats?.gallery} icon={Image} color="text-green-500" bg="bg-green-50" link="/admin/gallery" sub="in collection" />
-        <StatCard label="Subscribers" value={loading ? '...' : stats?.subscribers} icon={Newspaper} color="text-teal" bg="bg-teal/10" link="/admin/newsletter" sub="newsletter" />
-        <StatCard label="New Messages" value={loading ? '...' : stats?.newContacts} icon={Mail} color="text-orange" bg="bg-orange/10" link="/admin/contacts" sub="unread" />
-        <StatCard label="Prayer Requests" value={loading ? '...' : stats?.pendingPrayers} icon={Heart} color="text-red-500" bg="bg-red-50" link="/admin/prayer" sub="pending" />
-        <StatCard label="Leaders" value={loading ? '...' : stats?.leaders} icon={Users} color="text-navy" bg="bg-navy/10" link="/admin/leadership" sub="EC + Patrons" />
-        <StatCard label="Ministries" value={loading ? '...' : (stats?.ministries ?? 10)} icon={Church} color="text-indigo-500" bg="bg-indigo-50" link="/admin/ministries" sub="all active" />
-      </div>
-
-      {/* Expo + Forms stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-orange/10 flex items-center justify-center">
-              <Briefcase size={18} className="text-orange" />
+      {/* Expo stats — expo manager */}
+      {(websiteRole === 'expo_manager' || isSuperAdmin()) && expoStats && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-orange/10 flex items-center justify-center"><Briefcase size={18} className="text-orange" /></div>
+              <Link to="/admin/expo-registrations" className="text-xs text-orange font-montserrat font-semibold hover:underline">View all</Link>
             </div>
-            <Link to="/admin/expo-registrations" className="text-xs text-orange font-montserrat font-semibold hover:underline">View all →</Link>
-          </div>
-          <div className="text-xl sm:text-2xl font-montserrat font-black text-navy mb-0.5">{expoStats ? expoStats.total : '—'}</div>
-          <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Expo Registrations</div>
-          {expoStats && (
+            <div className="text-2xl font-montserrat font-black text-navy mb-0.5">{expoStats.total}</div>
+            <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Expo Registrations</div>
             <div className="flex gap-3 mt-2">
               <span className="text-xs text-gray-500 font-montserrat">{expoStats.attendees} attendees</span>
               <span className="text-xs text-orange font-montserrat font-semibold">{expoStats.pitchers} pitchers</span>
             </div>
-          )}
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center">
-              <ClipboardList size={18} className="text-teal" />
-            </div>
-            <Link to="/admin/forms" className="text-xs text-orange font-montserrat font-semibold hover:underline">Manage →</Link>
           </div>
-          <div className="text-xl sm:text-2xl font-montserrat font-black text-navy mb-0.5">{formCount !== null ? formCount : '—'}</div>
-          <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Open Forms</div>
-          <div className="text-xs text-gray-300 mt-0.5">accepting registrations</div>
+          <Link to="/admin/expo-settings" className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center mb-3"><SlidersHorizontal size={18} className="text-indigo-500" /></div>
+            <div className="text-xl font-montserrat font-black text-navy mb-0.5">Expo Page</div>
+            <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Edit Photos & Content</div>
+          </Link>
+          <Link to="/admin/forms" className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+            <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center mb-3"><ClipboardList size={18} className="text-teal" /></div>
+            <div className="text-xl font-montserrat font-black text-navy mb-0.5">{formCount ?? '—'}</div>
+            <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Open Forms</div>
+          </Link>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
-              <SlidersHorizontal size={18} className="text-indigo-500" />
+      )}
+
+      {/* Role-specific stat cards */}
+      {getStatCards().length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          {getStatCards().map((s, i) => (
+            <StatCard key={i} label={s.label} value={s.value} icon={s.icon} color={s.color} bg={s.bg} link={s.link} sub={s.sub} />
+          ))}
+        </div>
+      )}
+
+      {/* Super admin extra stats */}
+      {isSuperAdmin() && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-orange/10 flex items-center justify-center"><Briefcase size={18} className="text-orange" /></div>
+              <Link to="/admin/expo-registrations" className="text-xs text-orange font-montserrat font-semibold hover:underline">View all</Link>
             </div>
-            <Link to="/admin/expo-settings" className="text-xs text-orange font-montserrat font-semibold hover:underline">Edit →</Link>
+            <div className="text-2xl font-montserrat font-black text-navy mb-0.5">{expoStats ? expoStats.total : '—'}</div>
+            <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Expo Registrations</div>
+            {expoStats && <div className="flex gap-3 mt-2"><span className="text-xs text-gray-500">{expoStats.attendees} attendees</span><span className="text-xs text-orange font-semibold">{expoStats.pitchers} pitchers</span></div>}
           </div>
-          <div className="text-xl sm:text-2xl font-montserrat font-black text-navy mb-0.5">Expo</div>
-          <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Page Settings</div>
-          <div className="text-xs text-gray-300 mt-0.5">photos & content</div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center"><ClipboardList size={18} className="text-teal" /></div>
+              <Link to="/admin/forms" className="text-xs text-orange font-montserrat font-semibold hover:underline">Manage</Link>
+            </div>
+            <div className="text-2xl font-montserrat font-black text-navy mb-0.5">{formCount !== null ? formCount : '—'}</div>
+            <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Open Forms</div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center"><SlidersHorizontal size={18} className="text-indigo-500" /></div>
+              <Link to="/admin/expo-settings" className="text-xs text-orange font-montserrat font-semibold hover:underline">Edit</Link>
+            </div>
+            <div className="text-2xl font-montserrat font-black text-navy mb-0.5">Expo</div>
+            <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Page Settings</div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Quick Actions */}
       <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 mb-6">
         <h2 className="font-montserrat font-bold text-navy text-sm sm:text-base mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3">
-          {QUICK_ACTIONS.map((a, i) => (
+        <div className={`grid gap-2 sm:gap-3 ${quickActions.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-4 sm:grid-cols-4 lg:grid-cols-8'}`}>
+          {quickActions.map((a, i) => (
             <Link key={i} to={a.link}
               className="flex flex-col items-center gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-xl hover:bg-gray-50 transition-all group text-center">
               <div className={`${a.color} w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
@@ -291,27 +374,24 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Bottom row: Activity feed + CMS features */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 mb-6">
-        {/* Recent Activity Feed */}
+      {/* Recent Activity + DMS link */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+        {/* Recent Activity */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-montserrat font-bold text-navy text-sm flex items-center gap-2">
               <Activity size={14} className="text-orange" /> Recent Activity
             </h3>
-            <span className="text-xs text-gray-400 font-montserrat">Last 15 actions</span>
           </div>
           {activityLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange" />
-            </div>
+            <div className="flex items-center justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange" /></div>
           ) : recentActivity.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
-              <Activity size={32} className="mx-auto mb-2 opacity-30" />
+              <Activity size={28} className="mx-auto mb-2 opacity-30" />
               <p className="text-sm font-montserrat">No recent activity</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-0.5">
+            <div className="space-y-2 max-h-64 overflow-y-auto">
               {recentActivity.map(a => (
                 <Link key={a.id} to={a.link}
                   className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
@@ -329,61 +409,42 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* CMS Features */}
-        <div className="space-y-3">
-          {CMS_FEATURES.map((f, i) => (
-            <Link key={i} to={f.link} className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 hover:shadow-md transition-all hover:-translate-y-0.5 group flex items-start gap-3">
-              <f.icon size={20} className={`${f.color} flex-shrink-0 mt-0.5`} />
-              <div className="flex-1 min-w-0">
-                <div className="font-montserrat font-bold text-navy text-sm mb-0.5 group-hover:text-orange transition-colors">{f.title}</div>
-                <div className="text-gray-400 text-xs leading-relaxed">{f.desc}</div>
+        {/* DMS link — super admin / secretary only */}
+        {(isSuperAdmin() || websiteRole === 'secretary') ? (
+          <div className="bg-navy rounded-2xl p-4 sm:p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-orange/20 flex items-center justify-center flex-shrink-0">
+                <ExternalLink size={18} className="text-orange" />
               </div>
-              <ArrowRight size={14} className="text-gray-300 group-hover:text-orange transition-colors flex-shrink-0 mt-0.5" />
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* DMS + Tips */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-        <div className="bg-navy rounded-2xl p-4 sm:p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-orange/20 flex items-center justify-center flex-shrink-0">
-              <ExternalLink size={18} className="text-orange" />
+              <div>
+                <div className="font-montserrat font-bold text-white text-sm">MUTCU Member Portal</div>
+                <div className="text-white/40 text-xs">portal.mutcu.org</div>
+              </div>
             </div>
-            <div>
-              <div className="font-montserrat font-bold text-white text-sm">MUTCU Member Portal</div>
-              <div className="text-white/40 text-xs">portal.mutcu.org</div>
+            <p className="text-white/60 text-sm mb-4 leading-relaxed">The DMS manages member registration, nominations, and leadership data that powers this website.</p>
+            <div className="flex flex-wrap gap-2">
+              <a href="https://portal.mutcu.org" target="_blank" rel="noopener noreferrer" className="btn-primary btn-sm">
+                <ExternalLink size={13} /> Open DMS Portal
+              </a>
+              <Link to="/admin/leadership" className="btn-outline-white btn-sm">Update Leadership</Link>
             </div>
           </div>
-          <p className="text-white/60 text-sm mb-4 leading-relaxed">The DMS manages member registration, nominations, and leadership data that powers this website's dynamic content.</p>
-          <div className="flex flex-wrap gap-2">
-            <a href="https://portal.mutcu.org" target="_blank" rel="noopener noreferrer" className="btn-primary btn-sm">
-              <ExternalLink size={13} /> Open DMS Portal
-            </a>
-            <Link to="/admin/leadership" className="btn-outline-white btn-sm">Update Leadership</Link>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
+            <h3 className="font-montserrat font-bold text-navy text-sm mb-4 flex items-center gap-2">
+              <TrendingUp size={14} className="text-orange" /> Your Role
+            </h3>
+            <div className="p-4 rounded-2xl bg-navy/5 border border-navy/10">
+              <div className="font-montserrat font-black text-navy text-base mb-1">{getRoleLabel()}</div>
+              <p className="text-gray-500 text-xs leading-relaxed">
+                You have access to the sections relevant to your role. Use the Quick Actions above or the sidebar to navigate.
+              </p>
+              <Link to="/admin/analytics" className="mt-3 inline-flex items-center gap-1 text-xs text-orange font-montserrat font-semibold hover:underline">
+                <BarChart2 size={11} /> View your analytics
+              </Link>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-          <h3 className="font-montserrat font-bold text-navy text-sm mb-4 flex items-center gap-2">
-            <TrendingUp size={14} className="text-orange" /> Getting Started Tips
-          </h3>
-          <ul className="space-y-2.5">
-            {[
-              { tip: 'Go to Homepage Manager to control hero slides and section visibility.', link: '/admin/homepage' },
-              { tip: 'Events marked as "Featured" (star) appear on the homepage.', link: '/admin/events' },
-              { tip: 'Blog posts must be set to "Published" to appear on the website.', link: '/admin/blogs' },
-              { tip: 'Test your email configuration in Settings - AI & Email tab.', link: '/admin/settings' },
-              { tip: 'Use Form Builder to create registration forms for any event.', link: '/admin/forms' },
-              { tip: 'Expo page photos can be changed without code in Expo Settings.', link: '/admin/expo-settings' },
-            ].map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs">
-                <i className="fas fa-check-circle text-teal mt-0.5 flex-shrink-0" />
-                <Link to={item.link} className="text-gray-500 hover:text-orange transition-colors">{item.tip}</Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        )}
       </div>
     </div>
   )

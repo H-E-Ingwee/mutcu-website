@@ -309,7 +309,7 @@ export default function AdminEvents() {
         </div>
       )}
 
-      
+      {modal !== null && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setModal(null)}>
           <div className="bg-white rounded-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-3xl z-10">
@@ -372,6 +372,7 @@ export default function AdminEvents() {
           </div>
         </div>
       )}
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

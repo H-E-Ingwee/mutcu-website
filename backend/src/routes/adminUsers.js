@@ -135,7 +135,7 @@ router.post('/invite', authenticate, requireSuperWebAdmin, async (req, res) => {
     }
 
     // Send invitation email
-    const inviteUrl = `${process.env.FRONTEND_URL || 'https://mutcu.org'}/admin/accept-invite?token=${token}`
+    const inviteUrl = `https://mutcu.org/admin/accept-invite?token=${token}`
     const roleLabel = WEBSITE_ROLES.find(r => r.value === website_role)?.label || website_role
 
     await sendEmail({
@@ -360,7 +360,7 @@ router.post('/:id/resend-invite', authenticate, requireSuperWebAdmin, async (req
       updated_at: new Date().toISOString(),
     }).eq('id', user.id)
 
-    const inviteUrl = `${process.env.FRONTEND_URL || 'https://mutcu.org'}/admin/accept-invite?token=${token}`
+    const inviteUrl = `https://mutcu.org/admin/accept-invite?token=${token}`
     const roleLabel = WEBSITE_ROLES.find(r => r.value === user.website_role)?.label || user.website_role
 
     try {
