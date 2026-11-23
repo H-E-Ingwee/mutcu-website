@@ -69,27 +69,7 @@ export const ROLE_PERMISSIONS = {
   },
 }
 
-// ─── Helper: get effective website role from user object ──────────────────────
-export function getWebsiteRole(user) {
-  if (!user) return null
-  // DMS super_admin / ec_admin → full super_admin access
-  if (['super_admin', 'ec_admin'].includes(user.role)) return 'super_admin'
-  // DMS cu_secretary → secretary role
-  if (user.role === 'cu_secretary') return 'secretary'
-  // Website admin user — use their website_role
-  if (user.website_role) return user.website_role
-  // Fallback
-  return 'content_manager'
-}
 
-// ─── Helper: check if a page is accessible for a role ────────────────────────
-export function canAccessPage(websiteRole, page) {
-  if (!websiteRole) return false
-  const perms = ROLE_PERMISSIONS[websiteRole]
-  if (!perms) return false
-  if (perms.pages.includes('*')) return true
-  return perms.pages.includes(page)
-}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -141,12 +121,21 @@ export function AuthProvider({ children }) {
 
   // Role checks
   const websiteRole = getWebsiteRole(user)
+  const secondaryRole = user?.secondary_role || null
   const isAdmin = () => !!user && !!websiteRole
   const isSuperAdmin = () => websiteRole === 'super_admin'
-  const canAccess = (page) => canAccessPage(websiteRole, page)
+  const canAccess = (page) => canAccessPage(websiteRole, page, secondaryRole)
   const canManageUsers = () => ROLE_PERMISSIONS[websiteRole]?.canManageUsers || false
   const canViewAuditLog = () => ROLE_PERMISSIONS[websiteRole]?.canViewAuditLog || false
-  const getRoleLabel = () => ROLE_PERMISSIONS[websiteRole]?.label || websiteRole || 'Admin'
+  const getRoleLabel = () => {
+    const primary = ROLE_PERMISSIONS[websiteRole]?.label || websiteRole || 'Admin'
+    if (secondaryRole && secondaryRole !== websiteRole) {
+      const sec = ROLE_PERMISSIONS[secondaryRole]?.label
+      if (sec) return `${primary} + ${sec}`
+    }
+    return primary
+  }
+
 
   return (
     <AuthContext.Provider value={{
@@ -160,6 +149,7 @@ export function AuthProvider({ children }) {
       canManageUsers,
       canViewAuditLog,
       websiteRole,
+      secondaryRole,
       getRoleLabel,
     }}>
       {children}

@@ -66,10 +66,7 @@ router.get('/roles', authenticate, (req, res) => {
 // ─── GET /api/admin-users — list all website admin users ─────────────────────
 router.get('/', authenticate, requireSuperWebAdmin, async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('website_admin_users')
-      .select('id, email, name, website_role, is_active, invite_accepted, last_login_at, created_at, invited_by')
-      .order('created_at', { ascending: false })
+    
     if (error) throw error
     res.json({ users: data || [] })
   } catch (err) { res.status(500).json({ error: err.message }) }
@@ -253,6 +250,7 @@ router.post('/accept-invite', async (req, res) => {
       email: data.email,
       role: 'website_admin',
       website_role: data.website_role,
+      secondary_role: data.secondary_role || null,
       source: 'website',
     }
     const token_jwt = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' })
@@ -293,17 +291,7 @@ router.post('/login', async (req, res) => {
     // Update last login
     await supabase.from('website_admin_users').update({ last_login_at: new Date().toISOString() }).eq('id', user.id)
 
-    const jwtPayload = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: 'website_admin',
-      website_role: user.website_role,
-      source: 'website',
-    }
-    const token = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' })
-
-    await auditLog(jwtPayload, 'LOGIN', 'users', user.id, user.name, { method: 'password' }, req.ip)
+    
 
     res.json({
       token,
@@ -315,14 +303,19 @@ router.post('/login', async (req, res) => {
   }
 })
 
-// ─── PUT /api/admin-users/:id — update role or status ────────────────────────
+// ─── PUT /api/admin-users/:id — update role, secondary role, or status ────────
 router.put('/:id', authenticate, requireSuperWebAdmin, async (req, res) => {
   try {
-    const { website_role, is_active, name } = req.body
+    const { website_role, secondary_role, is_active, name } = req.body
     const updates = { updated_at: new Date().toISOString() }
     if (website_role) {
-      if (!WEBSITE_ROLES.find(r => r.value === website_role)) return res.status(400).json({ error: 'Invalid role' })
+      if (!WEBSITE_ROLES.find(r => r.value === website_role)) return res.status(400).json({ error: 'Invalid primary role' })
       updates.website_role = website_role
+    }
+    // secondary_role can be null (to remove it) or a valid role
+    if (secondary_role !== undefined) {
+      if (secondary_role && !WEBSITE_ROLES.find(r => r.value === secondary_role)) return res.status(400).json({ error: 'Invalid secondary role' })
+      updates.secondary_role = secondary_role || null
     }
     if (typeof is_active === 'boolean') updates.is_active = is_active
     if (name?.trim()) updates.name = name.trim()

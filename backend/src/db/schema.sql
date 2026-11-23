@@ -269,13 +269,7 @@ ALTER TABLE expo_registrations ADD COLUMN IF NOT EXISTS business_description TEX
 ALTER TABLE expo_registrations ADD COLUMN IF NOT EXISTS support_needed JSONB;
 
 -- ─── Website Admin Users (website-specific, separate from DMS) ────────────────
-CREATE TABLE IF NOT EXISTS website_admin_users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  password_hash VARCHAR(255),           -- bcrypt hash, set on first login via invite
-  website_role VARCHAR(50) NOT NULL,    -- super_admin | content_manager | blog_manager | gallery_manager | events_manager | newsletter_manager | prayer_manager | analytics_manager | expo_manager | forms_manager
-  is_active BOOLEAN DEFAULT true,
+
   invite_token VARCHAR(255),            -- one-time token sent via email
   invite_expires_at TIMESTAMPTZ,
   invite_accepted BOOLEAN DEFAULT false,
@@ -317,3 +311,5 @@ CREATE TABLE IF NOT EXISTS website_notifications (
 );
 ALTER TABLE website_notifications ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role full access" ON website_notifications FOR ALL USING (true);
+-- ─── Add secondary_role to existing website_admin_users ──────────────────────
+ALTER TABLE website_admin_users ADD COLUMN IF NOT EXISTS secondary_role VARCHAR(50);

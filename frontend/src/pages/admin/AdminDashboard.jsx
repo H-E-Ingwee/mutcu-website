@@ -118,11 +118,13 @@ export default function AdminDashboard() {
       .catch(() => {})
       .finally(() => setLoading(false))
 
-    if (websiteRole === 'expo_manager' || isSuperAdmin()) {
+    // Expo stats for expo managers and super admins
+    if (websiteRole === 'expo_manager' || websiteRole === 'super_admin' || isSuperAdmin()) {
       expoAPI.getStats().then(data => setExpoStats(data)).catch(() => {})
     }
 
-    if (isSuperAdmin()) {
+    // Forms count for relevant roles
+    if (['super_admin', 'expo_manager', 'secretary', 'content_manager'].includes(websiteRole) || isSuperAdmin()) {
       formsAPI.getAllAdmin().then(data => setFormCount((data.forms || []).filter(f => f.status === 'open').length)).catch(() => {})
     }
 
@@ -289,31 +291,62 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Expo stats — expo manager */}
-      {(websiteRole === 'expo_manager' || isSuperAdmin()) && expoStats && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-orange/10 flex items-center justify-center"><Briefcase size={18} className="text-orange" /></div>
-              <Link to="/admin/expo-registrations" className="text-xs text-orange font-montserrat font-semibold hover:underline">View all</Link>
-            </div>
-            <div className="text-2xl font-montserrat font-black text-navy mb-0.5">{expoStats.total}</div>
-            <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Expo Registrations</div>
-            <div className="flex gap-3 mt-2">
-              <span className="text-xs text-gray-500 font-montserrat">{expoStats.attendees} attendees</span>
-              <span className="text-xs text-orange font-montserrat font-semibold">{expoStats.pitchers} pitchers</span>
+      {/* Expo stats — expo manager gets a rich dashboard */}
+      {(websiteRole === 'expo_manager') && (
+        <div className="space-y-4 mb-6">
+          {/* Main expo stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Total Registrations', value: expoStats?.total ?? '—', icon: Briefcase, color: 'text-orange', bg: 'bg-orange/10', link: '/admin/expo-registrations' },
+              { label: 'Attendees', value: expoStats?.attendees ?? '—', icon: Users, color: 'text-blue-500', bg: 'bg-blue-50', link: '/admin/expo-registrations?type=attendee' },
+              { label: "Pitchers (Founder's Arena)", value: expoStats?.pitchers ?? '—', icon: Briefcase, color: 'text-orange', bg: 'bg-orange/10', link: '/admin/expo-registrations?type=pitcher' },
+              { label: 'Confirmed', value: expoStats?.confirmed ?? '—', icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', link: '/admin/expo-registrations' },
+            ].map((s, i) => (
+              <Link key={i} to={s.link} className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all hover:-translate-y-0.5 block">
+                <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center mb-2`}>
+                  <s.icon size={16} className={s.color} />
+                </div>
+                <div className="text-xl font-montserrat font-black text-navy">{s.value}</div>
+                <div className="text-xs font-montserrat font-semibold text-gray-400 mt-0.5">{s.label}</div>
+              </Link>
+            ))}
+          </div>
+          {/* Expo quick links */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Link to="/admin/expo-registrations" className="bg-navy rounded-2xl p-4 text-white hover:opacity-90 transition-all">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-9 h-9 rounded-xl bg-orange/20 flex items-center justify-center"><Briefcase size={16} className="text-orange" /></div>
+                <div className="font-montserrat font-bold text-sm">Manage Registrations</div>
+              </div>
+              <p className="text-white/60 text-xs">View, search, filter, export Excel/PDF</p>
+            </Link>
+            <Link to="/admin/expo-settings" className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all hover:-translate-y-0.5">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center"><SlidersHorizontal size={16} className="text-indigo-500" /></div>
+                <div className="font-montserrat font-bold text-navy text-sm">Expo Page Photos</div>
+              </div>
+              <p className="text-gray-400 text-xs">Change hero, speakers, about photos</p>
+            </Link>
+            <Link to="/admin/forms" className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all hover:-translate-y-0.5">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-9 h-9 rounded-xl bg-teal/10 flex items-center justify-center"><ClipboardList size={16} className="text-teal" /></div>
+                <div className="font-montserrat font-bold text-navy text-sm">Registration Forms</div>
+              </div>
+              <p className="text-gray-400 text-xs">{formCount ?? '—'} open forms · Create new forms</p>
+            </Link>
+          </div>
+          {/* Expo countdown */}
+          <div className="bg-gradient-to-r from-navy to-navy-light rounded-2xl p-4 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-montserrat font-black text-white text-base">Business Exposition 2027</div>
+                <div className="text-white/60 text-xs mt-0.5">Saturday, 13 March 2027 · 8:00 AM – 4:00 PM</div>
+              </div>
+              <Link to="/business-expo" target="_blank" className="flex items-center gap-1 text-xs text-orange font-montserrat font-semibold hover:underline">
+                <ExternalLink size={11} /> View Page
+              </Link>
             </div>
           </div>
-          <Link to="/admin/expo-settings" className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center mb-3"><SlidersHorizontal size={18} className="text-indigo-500" /></div>
-            <div className="text-xl font-montserrat font-black text-navy mb-0.5">Expo Page</div>
-            <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Edit Photos & Content</div>
-          </Link>
-          <Link to="/admin/forms" className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
-            <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center mb-3"><ClipboardList size={18} className="text-teal" /></div>
-            <div className="text-xl font-montserrat font-black text-navy mb-0.5">{formCount ?? '—'}</div>
-            <div className="text-xs font-montserrat font-semibold text-gray-400 uppercase tracking-wide">Open Forms</div>
-          </Link>
         </div>
       )}
 

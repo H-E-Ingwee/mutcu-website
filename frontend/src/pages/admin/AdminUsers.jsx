@@ -1,12 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
 import { adminUsersAPI } from '../../lib/api'
 import { useAuth } from '../../context/AuthContext'
-import { ROLE_PERMISSIONS } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 import {
   Plus, Edit2, Trash2, X, Check, RefreshCw, Mail,
   Shield, UserCheck, UserX, Send, Clock, CheckCircle,
-  AlertCircle, Users, Copy, AlertTriangle
+  AlertCircle, Users, Copy, Tag
 } from 'lucide-react'
 import ConfirmModal from '../../components/admin/ConfirmModal'
 
@@ -34,13 +33,21 @@ const ROLE_COLORS = {
   expo_manager:       'bg-orange/10 text-orange border-orange/20',
 }
 
-function RoleBadge({ role }) {
+function RoleBadge({ role, secondary }) {
   const colors = ROLE_COLORS[role] || 'bg-gray-100 text-gray-600 border-gray-200'
   const label = ROLE_OPTIONS.find(r => r.value === role)?.label || role
+  const secLabel = secondary ? ROLE_OPTIONS.find(r => r.value === secondary)?.label : null
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-montserrat font-bold border ${colors}`}>
-      {label}
-    </span>
+    <div className="flex flex-wrap gap-1">
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-montserrat font-bold border ${colors}`}>
+        {label}
+      </span>
+      {secLabel && (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-montserrat font-bold border ${ROLE_COLORS[secondary] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+          <Tag size={9} />+{secLabel}
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -70,7 +77,7 @@ export default function AdminUsers() {
   const [editModal, setEditModal] = useState(null)
   const [confirm, setConfirm] = useState(null)
   const [inviteForm, setInviteForm] = useState({ email: '', name: '', website_role: 'content_manager' })
-  const [editForm, setEditForm] = useState({ website_role: '', is_active: true, name: '' })
+  const [editForm, setEditForm] = useState({ website_role: '', secondary_role: '', is_active: true, name: '' })
   const [saving, setSaving] = useState(false)
   const [resending, setResending] = useState(null)
 
@@ -98,8 +105,6 @@ export default function AdminUsers() {
     )
   }
 
-  
-
   const handleInvite = async (e) => {
     e.preventDefault()
     if (!inviteForm.email.trim() || !inviteForm.name.trim()) return toast.error('Email and name are required')
@@ -122,6 +127,26 @@ export default function AdminUsers() {
     }
   }
 
+  const handleEdit = async () => {
+    setSaving(true)
+    try {
+      const payload = {
+        name: editForm.name,
+        website_role: editForm.website_role,
+        secondary_role: editForm.secondary_role || null,
+        is_active: editForm.is_active,
+      }
+      await adminUsersAPI.update(editModal.id, payload)
+      toast.success('User updated!')
+      setEditModal(null)
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to update user')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleResendInvite = async (userId, email) => {
     setResending(userId)
     try {
@@ -130,7 +155,7 @@ export default function AdminUsers() {
         toast.error(`Email failed: ${res.emailError}`, { duration: 6000 })
         if (res.inviteUrl) {
           navigator.clipboard.writeText(res.inviteUrl).catch(() => {})
-          toast.success('Invite link copied to clipboard! Share it manually with the user.', { duration: 8000 })
+          toast.success('Invite link copied to clipboard! Share it manually.', { duration: 8000 })
         }
       } else {
         toast.success(`Invitation resent to ${email}`)
@@ -142,22 +167,6 @@ export default function AdminUsers() {
     }
   }
 
-  const handleEdit = async () => {
-    setSaving(true)
-    try {
-      await adminUsersAPI.update(editModal.id, editForm)
-      toast.success('User updated!')
-      setEditModal(null)
-      load()
-    } catch (err) {
-      toast.error(err.message || 'Failed to update user')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  
-
   const handleDeactivate = (user) => {
     setConfirm({
       title: `Deactivate ${user.name}?`,
@@ -165,15 +174,15 @@ export default function AdminUsers() {
       confirmLabel: 'Deactivate',
       variant: 'warning',
       onConfirm: async () => {
-        try {
-          await adminUsersAPI.deactivate(user.id)
-          toast.success(`${user.name} has been deactivated`)
-          load()
-        } catch (err) {
-          toast.error(err.message || 'Failed to deactivate user')
-        }
+        try { await adminUsersAPI.deactivate(user.id); toast.success(`${user.name} deactivated`); load() }
+        catch (err) { toast.error(err.message || 'Failed') }
       }
     })
+  }
+
+  const handleReactivate = async (user) => {
+    try { await adminUsersAPI.update(user.id, { is_active: true }); toast.success(`${user.name} reactivated!`); load() }
+    catch (err) { toast.error(err.message || 'Failed') }
   }
 
   const handlePermanentDelete = (user) => {
@@ -183,31 +192,22 @@ export default function AdminUsers() {
       confirmLabel: 'Permanently Delete',
       variant: 'danger',
       onConfirm: async () => {
-        try {
-          await adminUsersAPI.permanentDelete(user.id)
-          toast.success(`${user.name} permanently deleted`)
-          load()
-        } catch (err) {
-          toast.error(err.message || 'Failed to delete user')
-        }
+        try { await adminUsersAPI.permanentDelete(user.id); toast.success(`${user.name} permanently deleted`); load() }
+        catch (err) { toast.error(err.message || 'Failed') }
       }
     })
   }
 
-  const handleReactivate = async (user) => {
+  const copyInviteLink = async (userId) => {
     try {
-      await adminUsersAPI.update(user.id, { is_active: true })
-      toast.success(`${user.name} reactivated!`)
-      load()
+      const res = await adminUsersAPI.resendInvite(userId)
+      if (res.inviteUrl) {
+        navigator.clipboard.writeText(res.inviteUrl).catch(() => {})
+        toast.success('Invite link copied to clipboard!')
+      }
     } catch (err) {
-      toast.error(err.message || 'Failed to reactivate')
+      toast.error('Failed to generate invite link')
     }
-  }
-
-  const copyInviteLink = (token) => {
-    if (!token) return toast.error('No pending invite token')
-    const url = `${window.location.origin}/admin/accept-invite?token=${token}`
-    navigator.clipboard.writeText(url).then(() => toast.success('Invite link copied!')).catch(() => toast.error('Could not copy'))
   }
 
   const activeUsers = users.filter(u => u.is_active && u.invite_accepted).length
@@ -241,7 +241,7 @@ export default function AdminUsers() {
         <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
         <span>
           Website admin users are <strong>separate from the DMS portal</strong>. DMS super_admin and ec_admin accounts always have full access.
-          Use this page to invite non-technical team members (Content Manager, Gallery Manager, etc.) with scoped access.
+          Users can have a <strong>primary role</strong> and an optional <strong>secondary role</strong> — they get access to pages from both roles.
         </span>
       </div>
 
@@ -251,11 +251,8 @@ export default function AdminUsers() {
       ) : users.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
           <Users size={40} className="text-gray-200 mx-auto mb-3" />
-          <p className="font-montserrat font-semibold text-gray-400 text-sm mb-1">No website admin users yet</p>
-          <p className="text-gray-300 text-xs mb-4">Invite team members to manage the website</p>
-          <button onClick={() => setInviteModal(true)} className="btn-primary btn-sm">
-            <Plus size={14} /> Invite First User
-          </button>
+          <p className="font-montserrat font-semibold text-gray-400 text-sm mb-4">No website admin users yet</p>
+          <button onClick={() => setInviteModal(true)} className="btn-primary btn-sm"><Plus size={14} /> Invite First User</button>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -264,7 +261,7 @@ export default function AdminUsers() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-4 py-3 text-xs font-montserrat font-bold text-gray-400 uppercase tracking-wider">User</th>
-                  <th className="text-left px-4 py-3 text-xs font-montserrat font-bold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Role</th>
+                  <th className="text-left px-4 py-3 text-xs font-montserrat font-bold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Role(s)</th>
                   <th className="text-left px-4 py-3 text-xs font-montserrat font-bold text-gray-400 uppercase tracking-wider hidden md:table-cell">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-montserrat font-bold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Last Login</th>
                   <th className="text-right px-4 py-3 text-xs font-montserrat font-bold text-gray-400 uppercase tracking-wider">Actions</th>
@@ -288,33 +285,60 @@ export default function AdminUsers() {
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <RoleBadge role={u.website_role} />
+                      <RoleBadge role={u.website_role} secondary={u.secondary_role} />
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       <StatusBadge user={u} />
                     </td>
-                    
+                    <td className="px-4 py-3 hidden lg:table-cell text-gray-400 text-xs">
+                      {!u.invite_accepted ? (
+                        <span className="text-yellow-600 font-montserrat font-semibold">Pending invitation</span>
+                      ) : u.last_login_at ? (
+                        new Date(u.last_login_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                      ) : 'Never logged in'}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        {/* Resend invite for pending users */}
+                        {/* Resend invite */}
                         {u.is_active && !u.invite_accepted && (
-                          <button
-                            onClick={() => handleResendInvite(u.id, u.email)}
-                            disabled={resending === u.id}
-                            className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition-colors"
-                            title="Resend invitation">
+                          <button onClick={() => handleResendInvite(u.id, u.email)} disabled={resending === u.id}
+                            className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition-colors" title="Resend invitation">
                             {resending === u.id ? <RefreshCw size={13} className="animate-spin" /> : <Send size={13} />}
                           </button>
                         )}
+                        {/* Copy invite link for pending */}
+                        {u.is_active && !u.invite_accepted && (
+                          <button onClick={() => copyInviteLink(u.id)}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Copy invite link">
+                            <Copy size={13} />
+                          </button>
+                        )}
                         {/* Edit */}
-                        <button
-                          onClick={() => { setEditModal(u); setEditForm({ website_role: u.website_role, is_active: u.is_active, name: u.name }) }}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors"
-                          title="Edit user">
+                        <button onClick={() => { setEditModal(u); setEditForm({ website_role: u.website_role, secondary_role: u.secondary_role || '', is_active: u.is_active, name: u.name }) }}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Edit user">
                           <Edit2 size={13} />
                         </button>
                         {/* Deactivate / Reactivate */}
-                        
+                        {u.email !== currentUser?.email && (
+                          <>
+                            {u.is_active ? (
+                              <button onClick={() => handleDeactivate(u)}
+                                className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition-colors" title="Deactivate user">
+                                <UserX size={13} />
+                              </button>
+                            ) : (
+                              <button onClick={() => handleReactivate(u)}
+                                className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors" title="Reactivate user">
+                                <UserCheck size={13} />
+                              </button>
+                            )}
+                            {/* Permanent delete */}
+                            <button onClick={() => handlePermanentDelete(u)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors" title="Permanently delete user">
+                              <Trash2 size={13} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -357,23 +381,19 @@ export default function AdminUsers() {
             <form onSubmit={handleInvite} className="p-5 space-y-4">
               <div>
                 <label className="form-label">Full Name *</label>
-                <input className="form-input" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Grace Wanjiku" required />
+                <input className="form-input" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Grace Wanjiku" required />
               </div>
               <div>
                 <label className="form-label">Email Address *</label>
-                <input type="email" className="form-input" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="grace@mutcu.org" required />
+                <input type="email" className="form-input" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} placeholder="grace@mutcu.org" required />
               </div>
               <div>
-                <label className="form-label">Role *</label>
+                <label className="form-label">Primary Role *</label>
                 <select className="form-select" value={inviteForm.website_role} onChange={e => setInviteForm(f => ({ ...f, website_role: e.target.value }))}>
                   {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
                 {inviteForm.website_role && (
-                  <p className="text-gray-400 text-xs mt-1">
-                    Access: {ROLE_OPTIONS.find(r => r.value === inviteForm.website_role)?.desc}
-                  </p>
+                  <p className="text-gray-400 text-xs mt-1">Access: {ROLE_OPTIONS.find(r => r.value === inviteForm.website_role)?.desc}</p>
                 )}
               </div>
               <div className="flex gap-3 pt-2">
@@ -401,13 +421,28 @@ export default function AdminUsers() {
                 <input className="form-input" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
               </div>
               <div>
-                <label className="form-label">Role</label>
+                <label className="form-label">Primary Role</label>
                 <select className="form-select" value={editForm.website_role} onChange={e => setEditForm(f => ({ ...f, website_role: e.target.value }))}>
                   {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
                 {editForm.website_role && (
+                  <p className="text-gray-400 text-xs mt-1">Access: {ROLE_OPTIONS.find(r => r.value === editForm.website_role)?.desc}</p>
+                )}
+              </div>
+              <div>
+                <label className="form-label">Secondary Role <span className="text-gray-400 font-normal">(optional — adds extra page access)</span></label>
+                <select className="form-select" value={editForm.secondary_role} onChange={e => setEditForm(f => ({ ...f, secondary_role: e.target.value }))}>
+                  <option value="">None — primary role only</option>
+                  {ROLE_OPTIONS.filter(r => r.value !== editForm.website_role).map(r => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+                {editForm.secondary_role && (
                   <p className="text-gray-400 text-xs mt-1">
-                    Access: {ROLE_OPTIONS.find(r => r.value === editForm.website_role)?.desc}
+                    Combined access: {[
+                      ...(ROLE_OPTIONS.find(r => r.value === editForm.website_role)?.desc || '').split(', '),
+                      ...(ROLE_OPTIONS.find(r => r.value === editForm.secondary_role)?.desc || '').split(', '),
+                    ].filter((v, i, a) => a.indexOf(v) === i).join(', ')}
                   </p>
                 )}
               </div>
