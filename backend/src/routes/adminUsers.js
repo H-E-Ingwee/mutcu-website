@@ -394,16 +394,23 @@ router.post('/:id/resend-invite', authenticate, requireSuperWebAdmin, async (req
   } catch (err) { res.status(500).json({ error: err.message }) }
 })
 
-// ─── DELETE /api/admin-users/:id — deactivate (soft delete) ──────────────────
+// ─── DELETE /api/admin-users/:id — deactivate or permanently delete ───────────
 router.delete('/:id', authenticate, requireSuperWebAdmin, async (req, res) => {
   try {
-    // Prevent self-deletion
+    const permanent = req.query.permanent === 'true'
     const { data: target } = await supabase.from('website_admin_users').select('name, email').eq('id', req.params.id).single()
-    if (target?.email === req.user.email) return res.status(400).json({ error: 'You cannot remove your own account' })
+    if (!target) return res.status(404).json({ error: 'User not found' })
+    if (target.email === req.user.email) return res.status(400).json({ error: 'You cannot remove your own account' })
 
-    await supabase.from('website_admin_users').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', req.params.id)
-    await auditLog(req.user, 'DELETE', 'users', req.params.id, target?.name, null, req.ip)
-    res.json({ message: 'User deactivated' })
+    if (permanent) {
+      await supabase.from('website_admin_users').delete().eq('id', req.params.id)
+      await auditLog(req.user, 'DELETE', 'users', req.params.id, target.name, { permanent: true }, req.ip)
+      res.json({ message: `${target.name} permanently deleted` })
+    } else {
+      await supabase.from('website_admin_users').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', req.params.id)
+      await auditLog(req.user, 'DELETE', 'users', req.params.id, target.name, { permanent: false }, req.ip)
+      res.json({ message: `${target.name} deactivated` })
+    }
   } catch (err) { res.status(500).json({ error: err.message }) }
 })
 

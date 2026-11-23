@@ -6,6 +6,7 @@ import {
   FileText, RefreshCw, GripVertical, ChevronDown, ChevronUp,
   CheckCircle, Clock, XCircle, Users, ExternalLink, Copy
 } from 'lucide-react'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Short Text', icon: 'fa-font' },
@@ -269,14 +270,11 @@ function SubmissionsView({ form, onBack }) {
       .finally(() => setLoading(false))
   }, [form.id])
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (!window.confirm('Delete this submission?')) return
-    try {
-      await formsAPI.deleteSubmission(form.id, id)
-      setSubmissions(prev => prev.filter(s => s.id !== id))
-      toast.success('Submission deleted')
-      if (selected?.id === id) setSelected(null)
-    } catch { toast.error('Failed to delete') }
+    formsAPI.deleteSubmission(form.id, id)
+      .then(() => { setSubmissions(prev => prev.filter(s => s.id !== id)); toast.success('Submission deleted'); if (selected?.id === id) setSelected(null) })
+      .catch(() => toast.error('Failed to delete'))
   }
 
   const handleExportExcel = async () => {
@@ -410,7 +408,8 @@ function SubmissionsView({ form, onBack }) {
 export default function AdminForms() {
   const [forms, setForms] = useState([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState('list') // list | create | edit | submissions
+  const [view, setView] = useState('list')
+  const [confirm, setConfirm] = useState(null)
   const [editingForm, setEditingForm] = useState(null)
   const [viewingSubmissions, setViewingSubmissions] = useState(null)
 
@@ -444,13 +443,17 @@ export default function AdminForms() {
     } catch (err) { toast.error(err.message || 'Failed to update form') }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this form and all its submissions? This cannot be undone.')) return
-    try {
-      await formsAPI.delete(id)
-      toast.success('Form deleted')
-      load()
-    } catch { toast.error('Failed to delete form') }
+  const handleDelete = (id, title) => {
+    setConfirm({
+      title: 'Delete Form?',
+      message: `"${title}" and all its submissions will be permanently deleted.`,
+      confirmLabel: 'Delete Form',
+      variant: 'danger',
+      onConfirm: async () => {
+        try { await formsAPI.delete(id); toast.success('Form deleted'); load() }
+        catch { toast.error('Failed to delete form') }
+      }
+    })
   }
 
   const handleToggleStatus = async (form) => {
@@ -554,7 +557,7 @@ export default function AdminForms() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-montserrat font-bold text-navy bg-gray-50 border border-gray-200 hover:border-gray-300 transition-all">
                     <Edit2 size={12} />Edit
                   </button>
-                  <button onClick={() => handleDelete(form.id)}
+                  <button onClick={() => handleDelete(form.id, form.title)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-montserrat font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-all">
                     <Trash2 size={12} />Delete
                   </button>
@@ -564,6 +567,7 @@ export default function AdminForms() {
           ))}
         </div>
       )}
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

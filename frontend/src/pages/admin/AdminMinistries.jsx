@@ -35,6 +35,13 @@ export default function AdminMinistries() {
 
   useEffect(() => { load() }, [])
 
+  // Escape key closes modal
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape' && (modal)) setModal(null) }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [modal])
+
   const openAdd = () => { setForm(EMPTY); setModal('add') }
   const openEdit = (m) => { setForm({ ...EMPTY, ...m }); setModal(m) }
 

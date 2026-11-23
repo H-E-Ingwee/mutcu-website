@@ -3,6 +3,7 @@ import { eventsAPI, adminAPI } from '../../lib/api'
 import api from '../../lib/api'
 import toast from 'react-hot-toast'
 import { Save, Star, Image, Calendar, MessageSquare, Eye, Plus, Trash2, X, ExternalLink, RefreshCw } from 'lucide-react'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const HERO_SLIDES_DEFAULT = [
   { image: '/assets/images/exec.jpg', title: 'Raising a Christ-like Family', subtitle: "Equipped in all aspects of life — united as one body, and reaching out to non-believers within our community and beyond.", cta1: 'Our Mission', cta1Link: '/about', cta2: 'View Programs', cta2Link: '/events' },
@@ -38,6 +39,7 @@ export default function AdminHomepage() {
   const [loading, setLoading] = useState(true)
   const [savingSlides, setSavingSlides] = useState(false)
   const [editSlide, setEditSlide] = useState(null)
+  const [confirm, setConfirm] = useState(null)
   const [newTestimonial, setNewTestimonial] = useState({ quote: '', author: '', role: '' })
   const [addingTestimonial, setAddingTestimonial] = useState(false)
 
@@ -101,11 +103,7 @@ export default function AdminHomepage() {
     finally { setAddingTestimonial(false) }
   }
 
-  const deleteTestimonial = async (id) => {
-    if (!window.confirm('Delete this testimonial?')) return
-    try { await adminAPI.deleteTestimonial(id); setTestimonials(prev => prev.filter(t => t.id !== id)); toast.success('Deleted') }
-    catch { toast.error('Failed to delete') }
-  }
+  
 
   const toggleSection = async (key) => {
     const newVal = settings[key] === 'false' ? 'true' : 'false'
@@ -363,6 +361,7 @@ export default function AdminHomepage() {
           </div>
         </div>
       )}
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

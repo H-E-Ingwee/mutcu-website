@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { adminAPI, expoAPI, formsAPI, contactAPI, prayerAPI, newsletterAPI } from '../../lib/api'
+import { adminAPI, expoAPI, formsAPI } from '../../lib/api'
 import { useAuth } from '../../context/AuthContext'
 import OnboardingChecklist from '../../components/admin/OnboardingChecklist'
 import {
@@ -61,6 +61,9 @@ export default function AdminDashboard() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return localStorage.getItem('mutcu_onboarding_dismissed') !== 'true'
   })
+  const [shortcutsHintDismissed, setShortcutsHintDismissed] = useState(() => {
+    return localStorage.getItem('mutcu_shortcuts_seen') === 'true'
+  })
 
   useEffect(() => {
     // Main stats
@@ -85,54 +88,37 @@ export default function AdminDashboard() {
       .then(data => setHealth({ brevo: data.brevo ? 'ok' : 'error', ai: data.groq ? 'ok' : 'error', db: 'ok' }))
       .catch(() => setHealth({ brevo: 'error', ai: 'error', db: 'error' }))
 
-    // Recent activity + today summary
-    const today = new Date().toISOString().split('T')[0]
-    Promise.all([
-      contactAPI.getAll().catch(() => ({ contacts: [] })),
-      prayerAPI.getAll().catch(() => ({ requests: [] })),
-      newsletterAPI.getAll().catch(() => ({ subscribers: [] })),
-      expoAPI.getRegistrations({ limit: 20 }).catch(() => ({ registrations: [] })),
-    ]).then(([cont, pray, news, expo]) => {
-      const contacts = cont.contacts || []
-      const prayers = pray.requests || []
-      const subscribers = news.subscribers || []
-      const registrations = expo.registrations || []
+    // Recent activity — uses efficient dedicated endpoint
+    adminAPI.recentActivity()
+      .then(data => {
+        const TYPE_CONFIG = {
+          contact:    { icon: Mail,      color: 'text-orange',   bg: 'bg-orange/10' },
+          prayer:     { icon: Heart,     color: 'text-red-500',  bg: 'bg-red-50' },
+          subscriber: { icon: Newspaper, color: 'text-teal',     bg: 'bg-teal/10' },
+          expo:       { icon: Briefcase, color: 'text-orange',   bg: 'bg-orange/10' },
+        }
+        const activities = (data.activities || []).map(a => ({
+          ...a,
+          icon: TYPE_CONFIG[a.type]?.icon || Mail,
+          color: TYPE_CONFIG[a.type]?.color || 'text-gray-500',
+          bg: TYPE_CONFIG[a.type]?.bg || 'bg-gray-100',
+        }))
+        setRecentActivity(activities)
+      })
+      .catch(() => {})
+      .finally(() => setActivityLoading(false))
 
-      // Build activity feed — last 15 items across all modules
-      const activities = [
-        ...contacts.slice(0, 5).map(c => ({
-          id: `contact-${c.id}`, type: 'contact', icon: Mail, color: 'text-orange', bg: 'bg-orange/10',
-          title: `New message from ${c.name}`, sub: c.subject, time: c.created_at, link: '/admin/contacts',
-        })),
-        ...prayers.slice(0, 5).map(p => ({
-          id: `prayer-${p.id}`, type: 'prayer', icon: Heart, color: 'text-red-500', bg: 'bg-red-50',
-          title: `Prayer request from ${p.name || 'Anonymous'}`, sub: p.request?.slice(0, 60) + (p.request?.length > 60 ? '...' : ''), time: p.created_at, link: '/admin/prayer',
-        })),
-        ...subscribers.slice(0, 5).map(s => ({
-          id: `sub-${s.id}`, type: 'subscriber', icon: Newspaper, color: 'text-teal', bg: 'bg-teal/10',
-          title: `New newsletter subscriber`, sub: s.email, time: s.subscribed_at, link: '/admin/newsletter',
-        })),
-        ...registrations.slice(0, 5).map(r => ({
-          id: `expo-${r.id}`, type: 'expo', icon: Briefcase, color: 'text-orange', bg: 'bg-orange/10',
-          title: `Expo registration — ${r.participation_type === 'pitcher' ? 'Pitcher' : 'Attendee'}`, sub: r.full_name, time: r.registered_at, link: '/admin/expo-registrations',
-        })),
-      ]
-        .filter(a => a.time)
-        .sort((a, b) => new Date(b.time) - new Date(a.time))
-        .slice(0, 15)
-
-      setRecentActivity(activities)
-
-      // Today's summary
-      const todayContacts = contacts.filter(c => c.created_at?.startsWith(today)).length
-      const todayPrayers = prayers.filter(p => p.created_at?.startsWith(today)).length
-      const todaySubs = subscribers.filter(s => s.subscribed_at?.startsWith(today)).length
-      const todayExpo = registrations.filter(r => r.registered_at?.startsWith(today)).length
-      const pendingPrayers = prayers.filter(p => p.status === 'pending').length
-      const newMessages = contacts.filter(c => c.status === 'new').length
-
-      setTodaySummary({ todayContacts, todayPrayers, todaySubs, todayExpo, pendingPrayers, newMessages })
-    }).finally(() => setActivityLoading(false))
+    // Today summary from dashboard stats
+    adminAPI.dashboard()
+      .then(data => {
+        const s = data.stats || {}
+        setTodaySummary({
+          todayContacts: 0, todayPrayers: 0, todaySubs: 0, todayExpo: 0,
+          pendingPrayers: s.pendingPrayers || 0,
+          newMessages: s.newContacts || 0,
+        })
+      })
+      .catch(() => {})
   }, [])
 
   const hour = new Date().getHours()
@@ -158,6 +144,22 @@ export default function AdminDashboard() {
           localStorage.setItem('mutcu_onboarding_dismissed', 'true')
           setShowOnboarding(false)
         }} />
+      )}
+
+      {/* Keyboard shortcuts hint */}
+      {!shortcutsHintDismissed && (
+        <div className="mb-5 p-3 rounded-xl bg-navy/5 border border-navy/10 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-wrap text-xs font-montserrat text-gray-500">
+            <span className="font-bold text-navy">Keyboard shortcuts:</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white border border-gray-200 text-xs">Ctrl+K</kbd> Search</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white border border-gray-200 text-xs">Ctrl+S</kbd> Save</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white border border-gray-200 text-xs">ESC</kbd> Close modal</span>
+          </div>
+          <button onClick={() => { localStorage.setItem('mutcu_shortcuts_seen', 'true'); setShortcutsHintDismissed(true) }}
+            className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-xs font-montserrat font-semibold">
+            Got it
+          </button>
+        </div>
       )}
 
       {/* Welcome */}

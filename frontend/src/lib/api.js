@@ -179,6 +179,8 @@ export const adminAPI = {
   login: (email, password) => api.post('/admin/login', { email, password }),
   me: () => api.get('/admin/me'),
   dashboard: () => api.get('/admin/dashboard'),
+  recentActivity: () => api.get('/admin/recent-activity'),
+  emailDiagnostics: () => api.get('/admin/email-diagnostics'),
   getTestimonials: () => api.get('/admin/testimonials'),
   createTestimonial: (data) => api.post('/admin/testimonials', data),
   updateTestimonial: (id, data) => api.put(`/admin/testimonials/${id}`, data),
@@ -205,6 +207,7 @@ export const adminUsersAPI = {
   update: (id, data) => api.put(`/admin-users/${id}`, data),
   resendInvite: (id) => api.post(`/admin-users/${id}/resend-invite`, {}),
   deactivate: (id) => api.delete(`/admin-users/${id}`),
+  permanentDelete: (id) => api.delete(`/admin-users/${id}?permanent=true`),
   getAuditLog: (params = {}) => {
     const q = new URLSearchParams(params).toString()
     return api.get(`/admin-users/audit-log${q ? `?${q}` : ''}`)

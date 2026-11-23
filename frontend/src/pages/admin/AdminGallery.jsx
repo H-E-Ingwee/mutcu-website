@@ -48,6 +48,13 @@ export default function AdminGallery() {
 
   useEffect(() => { load() }, [])
 
+  // Escape key closes modal
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape' && (modal)) setModal(null) }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [modal])
+
   const filtered = activeCategory === 'all'
     ? gallery
     : gallery.filter(g => g.category === activeCategory)
@@ -207,13 +214,13 @@ export default function AdminGallery() {
       {/* Category filter tabs — scrollable on mobile */}
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
         <button
-          onClick={() => setActiveCategory('all')}
+          onClick={() => { setActiveCategory('all'); setSelectedIds([]) }}
           className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-montserrat font-bold transition-all ${activeCategory === 'all' ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
           All <span className="opacity-60">({counts.all})</span>
         </button>
         {CATEGORIES.filter(c => counts[c] > 0).map(c => (
           <button key={c}
-            onClick={() => setActiveCategory(c)}
+            onClick={() => { setActiveCategory(c); setSelectedIds([]) }}
             className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-montserrat font-bold transition-all capitalize ${activeCategory === c ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             {CATEGORY_LABELS[c] || c} <span className="opacity-60">({counts[c]})</span>
           </button>

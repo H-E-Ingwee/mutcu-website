@@ -1,17 +1,32 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { blogsAPI } from '../../lib/api'
 import RichTextEditor from '../../components/RichTextEditor'
 import ImagePicker from '../../components/admin/ImagePicker'
 import toast from 'react-hot-toast'
-import { Plus, Edit2, Trash2, X, Check, Eye, EyeOff, FileText, Clock, Search, Copy, CheckSquare, Square } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Check, Eye, EyeOff, FileText, Clock, Search, Copy, CheckSquare, Square, RotateCcw } from 'lucide-react'
 import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const EMPTY = { title: '', slug: '', excerpt: '', content: '', featured_image: '', author: '', status: 'draft', tags: '', published_at: '' }
+const DRAFT_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
 function readingTime(html) {
   const text = html?.replace(/<[^>]+>/g, '') || ''
   const words = text.trim().split(/\s+/).filter(Boolean).length
   return Math.max(1, Math.ceil(words / 200))
+}
+
+function getDraft(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const draft = JSON.parse(raw)
+    // Auto-expire drafts older than 24 hours
+    if (draft._savedAt && Date.now() - new Date(draft._savedAt).getTime() > DRAFT_TTL_MS) {
+      localStorage.removeItem(key)
+      return null
+    }
+    return draft
+  } catch { return null }
 }
 
 export default function AdminBlogs() {
@@ -26,6 +41,8 @@ export default function AdminBlogs() {
   const [selectedIds, setSelectedIds] = useState([])
   const [bulkMode, setBulkMode] = useState(false)
   const [confirm, setConfirm] = useState(null)
+  // Draft restore banner state (replaces window.confirm)
+  const [draftBanner, setDraftBanner] = useState(null) // { key, draft, blogId }
 
   const load = () => {
     setLoading(true)
@@ -34,7 +51,7 @@ export default function AdminBlogs() {
 
   useEffect(() => { load() }, [])
 
-  // Auto-save draft to localStorage every 30 seconds
+  // Auto-save draft every 30 seconds — only when modal is open
   useEffect(() => {
     if (!modal) return
     const key = `mutcu_blog_draft_${modal === 'add' ? 'new' : modal.id}`
@@ -46,35 +63,46 @@ export default function AdminBlogs() {
     return () => clearInterval(timer)
   }, [modal, form])
 
-  const openAdd = () => {
-    const saved = localStorage.getItem('mutcu_blog_draft_new')
-    if (saved) {
-      try {
-        const draft = JSON.parse(saved)
-        if (draft.title || draft.content) {
-          const restore = window.confirm(`Restore unsaved draft "${draft.title || 'Untitled'}" from ${new Date(draft._savedAt).toLocaleString('en-GB')}?`)
-          if (restore) { setForm({ ...EMPTY, ...draft }); setPreview(false); setModal('add'); return }
-          else localStorage.removeItem('mutcu_blog_draft_new')
-        }
-      } catch {}
+  // Escape key closes modal
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape' && modal) setModal(null) }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [modal])
+
+  const openAdd = useCallback(() => {
+    const draft = getDraft('mutcu_blog_draft_new')
+    if (draft?.title || draft?.content) {
+      // Show inline banner instead of window.confirm
+      setDraftBanner({ key: 'mutcu_blog_draft_new', draft, blogId: null })
     }
-    setForm(EMPTY); setPreview(false); setModal('add')
+    setForm(EMPTY)
+    setPreview(false)
+    setModal('add')
+  }, [])
+
+  const openEdit = useCallback((b) => {
+    const key = `mutcu_blog_draft_${b.id}`
+    const draft = getDraft(key)
+    if (draft && (draft.title !== b.title || draft.content !== b.content)) {
+      setDraftBanner({ key, draft, blogId: b.id })
+    }
+    setForm({ ...EMPTY, ...b })
+    setPreview(false)
+    setModal(b)
+  }, [])
+
+  const restoreDraft = () => {
+    if (!draftBanner) return
+    setForm(prev => ({ ...prev, ...draftBanner.draft }))
+    setDraftBanner(null)
+    toast.success('Draft restored!')
   }
 
-  const openEdit = (b) => {
-    const key = `mutcu_blog_draft_${b.id}`
-    const saved = localStorage.getItem(key)
-    if (saved) {
-      try {
-        const draft = JSON.parse(saved)
-        if (draft.title !== b.title || draft.content !== b.content) {
-          const restore = window.confirm(`Restore unsaved changes to "${b.title}" from ${new Date(draft._savedAt).toLocaleString('en-GB')}?`)
-          if (restore) { setForm({ ...EMPTY, ...draft }); setPreview(false); setModal(b); return }
-          else localStorage.removeItem(key)
-        }
-      } catch {}
-    }
-    setForm({ ...EMPTY, ...b }); setPreview(false); setModal(b)
+  const discardDraft = () => {
+    if (!draftBanner) return
+    localStorage.removeItem(draftBanner.key)
+    setDraftBanner(null)
   }
 
   const handleTitleChange = (title) => {
@@ -96,7 +124,9 @@ export default function AdminBlogs() {
         toast.success('Blog post updated!')
         localStorage.removeItem(`mutcu_blog_draft_${modal.id}`)
       }
-      setModal(null); load()
+      setModal(null)
+      setDraftBanner(null)
+      load()
     } catch (err) { toast.error(err.message || 'Failed to save') }
     finally { setSaving(false) }
   }
@@ -165,6 +195,7 @@ export default function AdminBlogs() {
     })
   }
 
+  const draftCount = blogs.filter(b => b.status === 'draft').length
   const bulkDeleteDrafts = () => {
     const draftIds = blogs.filter(b => b.status === 'draft').map(b => b.id)
     if (draftIds.length === 0) return toast.error('No drafts to delete')
@@ -204,7 +235,6 @@ export default function AdminBlogs() {
   }, [blogs, statusFilter, search])
 
   const published = blogs.filter(b => b.status === 'published').length
-  const drafts = blogs.filter(b => b.status === 'draft').length
 
   return (
     <div>
@@ -214,7 +244,7 @@ export default function AdminBlogs() {
           <h1 className="font-montserrat font-black text-navy text-xl">Blog Management</h1>
           <div className="flex items-center gap-3 mt-1">
             <span className="text-xs text-green-600 font-semibold flex items-center gap-1"><Eye size={11} />{published} published</span>
-            <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={11} />{drafts} draft{drafts !== 1 ? 's' : ''}</span>
+            <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={11} />{draftCount} draft{draftCount !== 1 ? 's' : ''}</span>
             {scheduled.length > 0 && <span className="text-xs text-purple-600 font-semibold">Scheduled: {scheduled.length}</span>}
           </div>
         </div>
@@ -223,9 +253,9 @@ export default function AdminBlogs() {
             className={`btn-sm flex items-center gap-1.5 ${bulkMode ? 'btn-primary' : 'btn-outline'}`}>
             <CheckSquare size={13} /> {bulkMode ? 'Exit Select' : 'Select'}
           </button>
-          {drafts > 0 && (
+          {draftCount > 0 && (
             <button onClick={bulkDeleteDrafts} className="btn-outline btn-sm text-red-500 hover:text-red-600">
-              <Trash2 size={13} /> Clear Drafts
+              <Trash2 size={13} /> Clear Drafts ({draftCount})
             </button>
           )}
           <button onClick={openAdd} className="btn-primary btn-sm"><Plus size={14} /> New Post</button>
@@ -293,21 +323,19 @@ export default function AdminBlogs() {
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(b => {
                   const isSelected = selectedIds.includes(b.id)
+                  const isScheduled = b.status === 'draft' && b.published_at && new Date(b.published_at) > new Date()
                   return (
-                    <tr key={b.id}
-                      className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-orange/5' : ''}`}
-                      onClick={() => bulkMode && toggleSelect(b.id)}>
+                    <tr key={b.id} className={`transition-colors ${isSelected ? 'bg-orange/5' : 'hover:bg-gray-50'}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {bulkMode && (
-                            <div className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-orange border-orange' : 'border-gray-300'}`}>
-                              {isSelected && <Check size={9} className="text-white" />}
-                            </div>
+                            <button onClick={() => toggleSelect(b.id)}
+                              className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-orange border-orange' : 'border-gray-300 hover:border-orange'}`}>
+                              {isSelected && <Check size={10} className="text-white" />}
+                            </button>
                           )}
                           {b.featured_image ? (
-                            <img src={b.featured_image} alt={b.title}
-                              className="w-10 h-10 rounded-lg object-cover flex-shrink-0 hidden sm:block"
-                              onError={e => { e.target.style.display = 'none' }} />
+                            <img src={b.featured_image} alt={b.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 hidden sm:block" onError={e => { e.target.style.display = 'none' }} />
                           ) : (
                             <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 hidden sm:block">
                               <FileText size={14} className="text-gray-300" />
@@ -318,8 +346,10 @@ export default function AdminBlogs() {
                             <div className="flex items-center gap-2 mt-0.5">
                               {b.tags && <span className="text-gray-400 text-xs line-clamp-1 hidden sm:block">{b.tags}</span>}
                               <span className="text-gray-300 text-xs flex-shrink-0">{readingTime(b.content)} min read</span>
-                              {b.published_at && b.status === 'draft' && new Date(b.published_at) > new Date() && (
-                                <span className="text-purple-500 text-xs font-montserrat font-semibold flex-shrink-0">Scheduled</span>
+                              {isScheduled && (
+                                <span className="text-purple-500 text-xs font-montserrat font-semibold flex-shrink-0">
+                                  Scheduled: {new Date(b.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </span>
                               )}
                             </div>
                           </div>
@@ -335,21 +365,16 @@ export default function AdminBlogs() {
                         {b.published_at ? new Date(b.published_at).toLocaleDateString('en-GB') : b.created_at ? new Date(b.created_at).toLocaleDateString('en-GB') : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={e => { e.stopPropagation(); toggleStatus(b) }} title={b.status === 'published' ? 'Unpublish' : 'Publish'}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors">
-                            {b.status === 'published' ? <EyeOff size={14} /> : <Eye size={14} />}
-                          </button>
-                          <button onClick={e => { e.stopPropagation(); openEdit(b) }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Edit">
-                            <Edit2 size={14} />
-                          </button>
-                          <button onClick={e => { e.stopPropagation(); handleDuplicate(b) }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Duplicate">
-                            <Copy size={14} />
-                          </button>
-                          <button onClick={e => { e.stopPropagation(); handleDelete(b.id, b.title) }} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        {!bulkMode && (
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => toggleStatus(b)} title={b.status === 'published' ? 'Unpublish' : 'Publish'} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors">
+                              {b.status === 'published' ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
+                            <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Edit"><Edit2 size={14} /></button>
+                            <button onClick={() => handleDuplicate(b)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Duplicate"><Copy size={14} /></button>
+                            <button onClick={() => handleDelete(b.id, b.title)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete"><Trash2 size={14} /></button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )
@@ -357,9 +382,7 @@ export default function AdminBlogs() {
                 {filtered.length === 0 && (
                   <tr><td colSpan={5} className="text-center py-16 text-gray-400">
                     <FileText size={40} className="mx-auto mb-3 opacity-30" />
-                    <p className="font-montserrat font-semibold text-sm">
-                      {search || statusFilter !== 'all' ? 'No posts match your search' : 'No blog posts yet'}
-                    </p>
+                    <p className="font-montserrat font-semibold text-sm">{search || statusFilter !== 'all' ? 'No posts match your search' : 'No blog posts yet'}</p>
                     {!search && statusFilter === 'all' && <p className="text-xs mt-1">Click "New Post" to write your first article</p>}
                   </td></tr>
                 )}
@@ -385,10 +408,7 @@ export default function AdminBlogs() {
                 </div>
                 <div>
                   <h3 className="font-montserrat font-bold text-navy text-base">{modal === 'add' ? 'New Blog Post' : 'Edit Blog Post'}</h3>
-                  <p className="text-gray-400 text-xs">
-                    {form.status === 'published' ? 'Published' : 'Draft'} · {readingTime(form.content)} min read
-                    <span className="ml-2 text-gray-300">· Auto-saves every 30s</span>
-                  </p>
+                  <p className="text-gray-400 text-xs">{form.status === 'published' ? 'Published' : 'Draft'} · {readingTime(form.content)} min read · <span className="text-gray-300">Auto-saves every 30s</span></p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -396,31 +416,38 @@ export default function AdminBlogs() {
                   className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-montserrat font-bold transition-all ${preview ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                   <Eye size={12} />{preview ? 'Edit' : 'Preview'}
                 </button>
-                <button onClick={() => setModal(null)} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-all">
+                <button onClick={() => { setModal(null); setDraftBanner(null) }} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-all">
                   <X size={16} />
                 </button>
               </div>
             </div>
 
+            {/* Draft restore banner — replaces window.confirm */}
+            {draftBanner && (
+              <div className="mx-4 sm:mx-6 mt-4 p-3 rounded-xl bg-yellow-50 border border-yellow-200 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <RotateCcw size={14} className="text-yellow-600 flex-shrink-0" />
+                  <p className="text-yellow-700 text-xs font-montserrat font-semibold truncate">
+                    Unsaved draft from {new Date(draftBanner.draft._savedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button onClick={restoreDraft} className="px-3 py-1 rounded-lg text-xs font-montserrat font-bold text-white bg-yellow-500 hover:bg-yellow-600 transition-all">Restore</button>
+                  <button onClick={discardDraft} className="px-3 py-1 rounded-lg text-xs font-montserrat font-bold text-yellow-700 bg-yellow-100 hover:bg-yellow-200 transition-all">Discard</button>
+                </div>
+              </div>
+            )}
+
             <div className="p-4 sm:p-6">
               {preview ? (
                 <div className="max-w-3xl mx-auto">
                   <div className="mb-6 pb-6 border-b border-gray-100">
-                    {form.featured_image && (
-                      <img src={form.featured_image} alt={form.title} className="w-full h-48 sm:h-56 object-cover rounded-2xl mb-5"
-                        onError={e => { e.target.style.display = 'none' }} />
-                    )}
-                    {form.tags && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {form.tags.split(',').map(t => <span key={t} className="badge badge-orange text-xs">{t.trim()}</span>)}
-                      </div>
-                    )}
+                    {form.featured_image && <img src={form.featured_image} alt={form.title} className="w-full h-48 sm:h-56 object-cover rounded-2xl mb-5" onError={e => { e.target.style.display = 'none' }} />}
+                    {form.tags && <div className="flex flex-wrap gap-1 mb-3">{form.tags.split(',').map(t => <span key={t} className="badge badge-orange text-xs">{t.trim()}</span>)}</div>}
                     <h1 className="font-montserrat font-black text-navy text-2xl sm:text-3xl mb-2">{form.title || 'Untitled Post'}</h1>
                     {form.excerpt && <p className="text-gray-500 text-base sm:text-lg italic border-l-4 border-orange pl-4">{form.excerpt}</p>}
                     <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
-                      <span>By {form.author || 'MUTCU'}</span>
-                      <span>·</span>
-                      <span>{readingTime(form.content)} min read</span>
+                      <span>By {form.author || 'MUTCU'}</span><span>·</span><span>{readingTime(form.content)} min read</span>
                     </div>
                   </div>
                   <div className="blog-content" dangerouslySetInnerHTML={{ __html: form.content || '<p class="text-gray-400 italic">No content yet...</p>' }} />
@@ -429,49 +456,39 @@ export default function AdminBlogs() {
                 <div className="space-y-5">
                   <div>
                     <label className="form-label">Title <span className="text-orange">*</span></label>
-                    <input className="form-input text-base sm:text-lg font-montserrat font-bold" value={form.title}
-                      onChange={e => handleTitleChange(e.target.value)} placeholder="Your blog post title..." />
+                    <input className="form-input text-base sm:text-lg font-montserrat font-bold" value={form.title} onChange={e => handleTitleChange(e.target.value)} placeholder="Your blog post title..." />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="form-label">URL Slug</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">/blogs/</span>
-                        <input className="form-input pl-14 text-sm" value={form.slug}
-                          onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="url-slug" />
+                        <input className="form-input pl-14 text-sm" value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="url-slug" />
                       </div>
                     </div>
                     <div>
                       <label className="form-label">Author</label>
-                      <input className="form-input" value={form.author}
-                        onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="Author name" />
+                      <input className="form-input" value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="Author name" />
                     </div>
                   </div>
                   <div>
                     <label className="form-label">Excerpt <span className="text-gray-400 font-normal">(shown in blog list)</span></label>
-                    <textarea className="form-textarea" rows={2} value={form.excerpt}
-                      onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))}
-                      placeholder="A brief summary of this post..." />
+                    <textarea className="form-textarea" rows={2} value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} placeholder="A brief summary of this post..." />
                   </div>
-                  <ImagePicker label="Featured Image" value={form.featured_image}
-                    onChange={url => setForm(f => ({ ...f, featured_image: url }))} />
+                  <ImagePicker label="Featured Image" value={form.featured_image} onChange={url => setForm(f => ({ ...f, featured_image: url }))} />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="form-label">Tags <span className="text-gray-400 font-normal">(comma-separated)</span></label>
-                      <input className="form-input" value={form.tags}
-                        onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-                        placeholder="faith, devotional, prayer" />
+                      <input className="form-input" value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="faith, devotional, prayer" />
                     </div>
                     <div>
                       <label className="form-label">Scheduled Publish Date <span className="text-gray-400 font-normal">(optional)</span></label>
-                      <input type="datetime-local" className="form-input" value={form.published_at ? form.published_at.slice(0, 16) : ''}
-                        onChange={e => setForm(f => ({ ...f, published_at: e.target.value ? new Date(e.target.value).toISOString() : '' }))} />
+                      <input type="datetime-local" className="form-input" value={form.published_at ? form.published_at.slice(0, 16) : ''} onChange={e => setForm(f => ({ ...f, published_at: e.target.value ? new Date(e.target.value).toISOString() : '' }))} />
                     </div>
                   </div>
                   <div>
                     <label className="form-label">Content <span className="text-orange">*</span></label>
-                    <RichTextEditor value={form.content} onChange={content => setForm(f => ({ ...f, content }))}
-                      placeholder="Write your blog post here..." />
+                    <RichTextEditor value={form.content} onChange={content => setForm(f => ({ ...f, content }))} placeholder="Write your blog post here..." />
                   </div>
                   <div className="flex items-center gap-4 pt-2">
                     <label className="form-label mb-0">Status:</label>
@@ -489,11 +506,9 @@ export default function AdminBlogs() {
             </div>
 
             <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-3xl sticky bottom-0">
-              <button onClick={() => setModal(null)} className="btn-outline btn-sm"><X size={14} /> Cancel</button>
+              <button onClick={() => { setModal(null); setDraftBanner(null) }} className="btn-outline btn-sm"><X size={14} /> Cancel</button>
               <div className="flex gap-2 sm:gap-3">
-                <button onClick={() => setPreview(!preview)} className="btn-outline btn-sm hidden sm:flex">
-                  {preview ? 'Back to Edit' : 'Preview'}
-                </button>
+                <button onClick={() => setPreview(!preview)} className="btn-outline btn-sm hidden sm:flex">{preview ? 'Back to Edit' : 'Preview'}</button>
                 <button onClick={handleSave} disabled={saving} className="btn-primary btn-sm">
                   <Check size={14} />{saving ? 'Saving...' : form.status === 'published' ? 'Publish Post' : 'Save Draft'}
                 </button>

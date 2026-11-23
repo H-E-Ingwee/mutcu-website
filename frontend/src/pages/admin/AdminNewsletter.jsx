@@ -3,6 +3,7 @@ import { newsletterAPI, blogsAPI } from '../../lib/api'
 import api from '../../lib/api'
 import toast from 'react-hot-toast'
 import { Trash2, Download, Newspaper, Send, X, Check, ChevronDown, ChevronUp, Upload, FileSpreadsheet } from 'lucide-react'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 export default function AdminNewsletter() {
   const [subscribers, setSubscribers] = useState([])
@@ -21,6 +22,7 @@ export default function AdminNewsletter() {
   const [importing, setImporting] = useState(false)
   const [importResults, setImportResults] = useState(null)
   const importRef = useRef(null)
+  const [confirm, setConfirm] = useState(null)
   const [sendHistory, setSendHistory] = useState(() => {
     try { return JSON.parse(localStorage.getItem('mutcu_newsletter_history') || '[]') } catch { return [] }
   })
@@ -39,10 +41,17 @@ export default function AdminNewsletter() {
 
   useEffect(() => { load() }, [])
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Remove this subscriber?')) return
-    try { await newsletterAPI.delete(id); toast.success('Subscriber removed'); load() }
-    catch (err) { toast.error(err.message || 'Failed') }
+  const handleDelete = (id, email) => {
+    setConfirm({
+      title: 'Remove Subscriber?',
+      message: `${email} will be removed from the newsletter list.`,
+      confirmLabel: 'Remove',
+      variant: 'warning',
+      onConfirm: async () => {
+        try { await newsletterAPI.delete(id); toast.success('Subscriber removed'); load() }
+        catch (err) { toast.error(err.message || 'Failed') }
+      }
+    })
   }
 
   const exportCSV = () => {
@@ -160,7 +169,7 @@ export default function AdminNewsletter() {
     const recipientCount = selectAll ? activeSubscribers.length : selectedIds.length
 
     if (recipientCount === 0) return toast.error('No recipients selected')
-    if (!window.confirm(`Send newsletter to ${recipientCount} subscriber${recipientCount !== 1 ? 's' : ''}?`)) return
+    // Confirmed via modal
 
     setSending(true)
     try {
@@ -258,7 +267,7 @@ export default function AdminNewsletter() {
           )}
           {sendHistory.length > 0 && (
             <button
-              onClick={() => { if (window.confirm('Clear send history?')) { setSendHistory([]); localStorage.removeItem('mutcu_newsletter_history') } }}
+              onClick={() => setConfirm({ title: 'Clear Send History?', message: 'All send history records will be deleted.', confirmLabel: 'Clear', variant: 'warning', onConfirm: () => { setSendHistory([]); localStorage.removeItem('mutcu_newsletter_history') } })}
               className="mt-3 text-xs text-red-400 hover:text-red-600 font-montserrat font-semibold">
               Clear History
             </button>
@@ -363,7 +372,18 @@ export default function AdminNewsletter() {
             </div>
 
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={sendNewsletter} disabled={sending || !subject.trim() || !body.trim()}
+              <button onClick={() => {
+                const activeSubscribers = subscribers.filter(s => s.is_active)
+                const recipientCount = selectAll ? activeSubscribers.length : selectedIds.length
+                if (recipientCount === 0) return toast.error('No recipients selected')
+                setConfirm({
+                  title: `Send Newsletter to ${recipientCount} Subscriber${recipientCount !== 1 ? 's' : ''}?`,
+                  message: `This will send "${subject}" to ${recipientCount} active subscriber${recipientCount !== 1 ? 's' : ''}. This cannot be undone.`,
+                  confirmLabel: `Send to ${recipientCount}`,
+                  variant: 'info',
+                  onConfirm: sendNewsletter,
+                })
+              }} disabled={sending || !subject.trim() || !body.trim()}
                 className="btn-primary flex-1 justify-center">
                 {sending ? <><i className="fas fa-spinner fa-spin" /> Sending to {recipientCount} subscribers...</> : <><Send size={14} /> Send to {recipientCount} Subscriber{recipientCount !== 1 ? 's' : ''}</>}
               </button>
@@ -414,7 +434,7 @@ export default function AdminNewsletter() {
                     <span className={`badge text-xs ${s.is_active ? 'badge-green' : 'badge-gray'}`}>{s.is_active ? 'Active' : 'Inactive'}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+                    <button onClick={() => handleDelete(s.id, s.email)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                       <Trash2 size={14} />
                     </button>
                   </td>
@@ -430,6 +450,7 @@ export default function AdminNewsletter() {
           </table>
         </div>
       )}
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

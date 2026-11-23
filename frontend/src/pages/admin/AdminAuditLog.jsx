@@ -30,11 +30,13 @@ export default function AdminAuditLog() {
   const [moduleFilter, setModuleFilter] = useState('')
   const [actionFilter, setActionFilter] = useState('')
   const [selected, setSelected] = useState(null)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 50
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const params = {}
+      const params = { limit: PAGE_SIZE, page }
       if (moduleFilter) params.module = moduleFilter
       if (actionFilter) params.action = actionFilter
       if (search.trim()) params.search = search.trim()
@@ -45,7 +47,7 @@ export default function AdminAuditLog() {
     } finally {
       setLoading(false)
     }
-  }, [moduleFilter, actionFilter, search])
+  }, [moduleFilter, actionFilter, search, page])
 
   useEffect(() => { load() }, [load])
 
@@ -206,8 +208,7 @@ export default function AdminAuditLog() {
             </table>
           </div>
           <div className="px-4 py-3 border-t border-gray-50 text-xs text-gray-400 font-montserrat">
-            {logs.length} log entr{logs.length !== 1 ? 'ies' : 'y'}
-            {(search || moduleFilter || actionFilter) && ' (filtered)'}
+            
           </div>
         </div>
       )}

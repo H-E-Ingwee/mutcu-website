@@ -4,6 +4,7 @@ import api from '../../lib/api'
 import { getToken } from '../../lib/api'
 import toast from 'react-hot-toast'
 import { Trash2, Mail, CheckCircle, Send, X, Search, Archive, Download, Sparkles, RefreshCw } from 'lucide-react'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const STATUS_COLORS = {
   new: 'bg-orange/10 text-orange border border-orange/20',
@@ -23,6 +24,7 @@ export default function AdminContacts() {
   const [replySending, setReplySending] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false)
   const [exportingExcel, setExportingExcel] = useState(false)
+  const [confirm, setConfirm] = useState(null)
 
   const load = () => {
     setLoading(true)
@@ -40,14 +42,21 @@ export default function AdminContacts() {
     } catch (err) { toast.error(err.message || 'Failed') }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this message?')) return
-    try {
-      await contactAPI.delete(id)
-      toast.success('Deleted')
-      setContacts(prev => prev.filter(c => c.id !== id))
-      if (selected?.id === id) setSelected(null)
-    } catch (err) { toast.error(err.message || 'Failed') }
+  const handleDelete = (id) => {
+    setConfirm({
+      title: 'Delete Message?',
+      message: 'This contact message will be permanently deleted.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await contactAPI.delete(id)
+          toast.success('Deleted')
+          setContacts(prev => prev.filter(c => c.id !== id))
+          if (selected?.id === id) setSelected(null)
+        } catch (err) { toast.error(err.message || 'Failed') }
+      }
+    })
   }
 
   const bulkArchive = async () => {
@@ -291,6 +300,7 @@ export default function AdminContacts() {
           </div>
         </div>
       )}
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

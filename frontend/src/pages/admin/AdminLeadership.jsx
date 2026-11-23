@@ -3,6 +3,7 @@ import { leadershipAPI } from '../../lib/api'
 import toast from 'react-hot-toast'
 import { Plus, Edit2, Trash2, X, Check, Users } from 'lucide-react'
 import ImagePicker from '../../components/admin/ImagePicker'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const ROLE_SLUGS = [
   'chairman', 'vice-chair1', 'vice-chair2', 'secretary', 'vice-secretary',
@@ -23,6 +24,7 @@ export default function AdminLeadership() {
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState('ec')
+  const [confirm, setConfirm] = useState(null)
   const [yearFilter, setYearFilter] = useState('all')
 
   const load = () => {
@@ -43,6 +45,13 @@ export default function AdminLeadership() {
 
   useEffect(() => { load() }, [])
 
+  // Escape key closes modal
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape' && (modal)) setModal(null) }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [modal])
+
   const openAdd = (isPatron = false) => { setForm({ ...EMPTY, is_patron: isPatron }); setModal('add') }
   const openEdit = (leader) => { setForm({ ...EMPTY, ...leader }); setModal(leader) }
 
@@ -57,10 +66,17 @@ export default function AdminLeadership() {
     finally { setSaving(false) }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this leader?')) return
-    try { await leadershipAPI.delete(id); toast.success('Leader deleted'); load() }
-    catch (err) { toast.error(err.message || 'Failed') }
+  const handleDelete = (id, name) => {
+    setConfirm({
+      title: 'Delete Leader?',
+      message: `"${name}" will be permanently removed from the website.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try { await leadershipAPI.delete(id); toast.success('Leader deleted'); load() }
+        catch (err) { toast.error(err.message || 'Failed') }
+      }
+    })
   }
 
   // Filter by year
@@ -163,7 +179,7 @@ export default function AdminLeadership() {
                   title="Edit">
                   <Edit2 size={13} />
                 </button>
-                <button onClick={() => handleDelete(leader.id)}
+                <button onClick={() => handleDelete(leader.id, leader.name)}
                   className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                   title="Delete">
                   <Trash2 size={13} />
@@ -305,6 +321,7 @@ export default function AdminLeadership() {
           </div>
         </div>
       )}
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

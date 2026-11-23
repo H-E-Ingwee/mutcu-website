@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
   Plus, Edit2, Trash2, X, Check, RefreshCw, Mail,
   Shield, UserCheck, UserX, Send, Clock, CheckCircle,
-  AlertCircle, Users, Copy
+  AlertCircle, Users, Copy, AlertTriangle
 } from 'lucide-react'
 import ConfirmModal from '../../components/admin/ConfirmModal'
 
@@ -176,6 +176,24 @@ export default function AdminUsers() {
     })
   }
 
+  const handlePermanentDelete = (user) => {
+    setConfirm({
+      title: `Permanently Delete ${user.name}?`,
+      message: `This will permanently delete ${user.name}'s account. They will need to be re-invited to regain access. This cannot be undone.`,
+      confirmLabel: 'Permanently Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await adminUsersAPI.permanentDelete(user.id)
+          toast.success(`${user.name} permanently deleted`)
+          load()
+        } catch (err) {
+          toast.error(err.message || 'Failed to delete user')
+        }
+      }
+    })
+  }
+
   const handleReactivate = async (user) => {
     try {
       await adminUsersAPI.update(user.id, { is_active: true })
@@ -275,9 +293,7 @@ export default function AdminUsers() {
                     <td className="px-4 py-3 hidden md:table-cell">
                       <StatusBadge user={u} />
                     </td>
-                    <td className="px-4 py-3 hidden lg:table-cell text-gray-400 text-xs">
-                      {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Never'}
-                    </td>
+                    
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         {/* Resend invite for pending users */}
@@ -298,21 +314,7 @@ export default function AdminUsers() {
                           <Edit2 size={13} />
                         </button>
                         {/* Deactivate / Reactivate */}
-                        {u.email !== currentUser?.email && (
-                          u.is_active ? (
-                            <button onClick={() => handleDeactivate(u)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                              title="Deactivate user">
-                              <UserX size={13} />
-                            </button>
-                          ) : (
-                            <button onClick={() => handleReactivate(u)}
-                              className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors"
-                              title="Reactivate user">
-                              <UserCheck size={13} />
-                            </button>
-                          )
-                        )}
+                        
                       </div>
                     </td>
                   </tr>

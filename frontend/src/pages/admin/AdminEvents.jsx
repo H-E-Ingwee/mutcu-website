@@ -5,6 +5,15 @@ import { Plus, Edit2, Trash2, X, Check, Star, Search, Copy, Calendar, CheckSquar
 import ImagePicker from '../../components/admin/ImagePicker'
 import ConfirmModal from '../../components/admin/ConfirmModal'
 
+// Escape key hook for modals
+function useEscapeKey(handler) {
+  useEffect(() => {
+    const fn = (e) => { if (e.key === 'Escape') handler() }
+    document.addEventListener('keydown', fn)
+    return () => document.removeEventListener('keydown', fn)
+  }, [handler])
+}
+
 const SERVICE_TYPES = ['SUNDAY', 'FRIDAY', 'SPECIAL', 'OUTREACH', 'TRAINING']
 const EMPTY = { title: '', description: '', date: '', time: '', location: '', image_url: '', service_type: 'SUNDAY', speaker: '', is_active: true, is_featured: false }
 
@@ -58,6 +67,9 @@ export default function AdminEvents() {
     } catch (err) { toast.error(err.message || 'Failed') }
     finally { setSaving(false) }
   }
+
+  // Escape key closes modal
+  useEscapeKey(() => { if (modal) setModal(null) })
 
   const handleDelete = (id, title) => {
     setConfirm({
@@ -161,7 +173,7 @@ export default function AdminEvents() {
             <CheckSquare size={13} /> {bulkMode ? 'Exit Select' : 'Select'}
           </button>
           <button onClick={bulkDeletePast} className="btn-outline btn-sm text-red-500 hover:text-red-600">
-            <Trash2 size={13} /> Clear Past
+            <Trash2 size={13} /> Clear Past ({events.filter(e => e.date < today).length})
           </button>
           <button onClick={openAdd} className="btn-primary btn-sm"><Plus size={14} /> Add Event</button>
         </div>
@@ -240,17 +252,20 @@ export default function AdminEvents() {
                   const isPast = ev.date < today
                   const isSelected = selectedIds.includes(ev.id)
                   return (
-                    <tr key={ev.id}
-                      className={`hover:bg-gray-50 transition-colors ${isPast ? 'opacity-60' : ''} ${isSelected ? 'bg-orange/5' : ''}`}
-                      onClick={() => bulkMode && toggleSelect(ev.id)}>
+                    <tr key={ev.id} className={`transition-colors ${isPast ? 'opacity-60' : ''} ${isSelected ? 'bg-orange/5' : 'hover:bg-gray-50'}`}>
                       <td className="px-4 py-3">
-                        {bulkMode && (
-                          <div className={`inline-flex w-4 h-4 rounded border-2 items-center justify-center mr-2 flex-shrink-0 ${isSelected ? 'bg-orange border-orange' : 'border-gray-300'}`}>
-                            {isSelected && <Check size={9} className="text-white" />}
+                        <div className="flex items-center gap-2">
+                          {bulkMode && (
+                            <button onClick={() => toggleSelect(ev.id)}
+                              className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-orange border-orange' : 'border-gray-300 hover:border-orange'}`}>
+                              {isSelected && <Check size={10} className="text-white" />}
+                            </button>
+                          )}
+                          <div className="min-w-0">
+                            <span className="font-semibold text-navy text-sm">{ev.title}</span>
+                            {ev.location && <div className="text-gray-400 text-xs mt-0.5 hidden sm:block">{ev.location}</div>}
                           </div>
-                        )}
-                        <span className="font-semibold text-navy text-sm">{ev.title}</span>
-                        {ev.location && <div className="text-gray-400 text-xs mt-0.5 hidden sm:block">{ev.location}</div>}
+                        </div>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <div className="text-gray-600 text-xs font-montserrat font-semibold">
@@ -271,13 +286,7 @@ export default function AdminEvents() {
                           <Star size={13} fill={ev.is_featured ? 'currentColor' : 'none'} />
                         </button>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openEdit(ev)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Edit"><Edit2 size={13} /></button>
-                          <button onClick={() => handleDuplicate(ev)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors" title="Duplicate"><Copy size={13} /></button>
-                          <button onClick={e => { e.stopPropagation(); handleDelete(ev.id, ev.title) }} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete"><Trash2 size={13} /></button>
-                        </div>
-                      </td>
+                      
                     </tr>
                   )
                 })}

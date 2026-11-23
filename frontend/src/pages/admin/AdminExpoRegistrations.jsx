@@ -6,6 +6,7 @@ import {
   Search, Filter, CheckCircle, Clock, XCircle, Star,
   FileSpreadsheet, FileText, TrendingUp, Mail, Phone
 } from 'lucide-react'
+import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const STATUS_CONFIG = {
   confirmed:  { label: 'Confirmed',  color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-200',  icon: CheckCircle },
@@ -48,6 +49,7 @@ export default function AdminExpoRegistrations() {
   const [selected, setSelected] = useState(null) // detail modal
   const [updatingId, setUpdatingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [confirm, setConfirm] = useState(null)
   const [exportingExcel, setExportingExcel] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
 
@@ -87,19 +89,26 @@ export default function AdminExpoRegistrations() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this registration? This cannot be undone.')) return
-    setDeletingId(id)
-    try {
-      await expoAPI.delete(id)
-      toast.success('Registration deleted')
-      setRegistrations(prev => prev.filter(r => r.id !== id))
-      if (selected?.id === id) setSelected(null)
-    } catch (err) {
-      toast.error('Failed to delete')
-    } finally {
-      setDeletingId(null)
-    }
+  const handleDelete = (id) => {
+    setConfirm({
+      title: 'Delete Registration?',
+      message: 'This registration will be permanently deleted.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        setDeletingId(id)
+        try {
+          await expoAPI.delete(id)
+          toast.success('Registration deleted')
+          setRegistrations(prev => prev.filter(r => r.id !== id))
+          if (selected?.id === id) setSelected(null)
+        } catch (err) {
+          toast.error('Failed to delete')
+        } finally {
+          setDeletingId(null)
+        }
+      }
+    })
   }
 
   const handleExportExcel = async () => {
@@ -488,6 +497,7 @@ export default function AdminExpoRegistrations() {
           </div>
         </div>
       )}
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   )
 }

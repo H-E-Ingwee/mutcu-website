@@ -107,6 +107,30 @@ router.delete('/testimonials/:id', authenticate, requireAdmin, async (req, res) 
   } catch (err) { res.status(500).json({ error: err.message }) }
 })
 
+// GET /api/admin/recent-activity — last 15 actions across all modules
+router.get('/recent-activity', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const [contacts, prayers, subscribers, expoRegs] = await Promise.all([
+      supabase.from('website_contacts').select('id,name,subject,status,created_at').order('created_at', { ascending: false }).limit(5),
+      supabase.from('website_prayer_requests').select('id,name,request,status,created_at').order('created_at', { ascending: false }).limit(5),
+      supabase.from('website_newsletter').select('id,email,subscribed_at').order('subscribed_at', { ascending: false }).limit(5),
+      supabase.from('expo_registrations').select('id,full_name,participation_type,registered_at').order('registered_at', { ascending: false }).limit(5),
+    ])
+
+    const activities = [
+      ...(contacts.data || []).map(c => ({ id: `contact-${c.id}`, type: 'contact', title: `New message from ${c.name}`, sub: c.subject, time: c.created_at, link: '/admin/contacts' })),
+      ...(prayers.data || []).map(p => ({ id: `prayer-${p.id}`, type: 'prayer', title: `Prayer request from ${p.name || 'Anonymous'}`, sub: p.request?.slice(0, 60), time: p.created_at, link: '/admin/prayer' })),
+      ...(subscribers.data || []).map(s => ({ id: `sub-${s.id}`, type: 'subscriber', title: 'New newsletter subscriber', sub: s.email, time: s.subscribed_at, link: '/admin/newsletter' })),
+      ...(expoRegs.data || []).map(r => ({ id: `expo-${r.id}`, type: 'expo', title: `Expo ${r.participation_type === 'pitcher' ? 'Pitcher' : 'Attendee'} — ${r.full_name}`, sub: null, time: r.registered_at, link: '/admin/expo-registrations' })),
+    ]
+      .filter(a => a.time)
+      .sort((a, b) => new Date(b.time) - new Date(a.time))
+      .slice(0, 15)
+
+    res.json({ activities })
+  } catch (err) { res.status(500).json({ error: err.message }) }
+})
+
 // POST /api/admin/send-reply — in-app email reply to contact message
 router.post('/send-reply', authenticate, requireAdmin, async (req, res) => {
   try {
