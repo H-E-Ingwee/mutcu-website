@@ -69,7 +69,38 @@ export const ROLE_PERMISSIONS = {
   },
 }
 
+// ─── Helper: get effective website role from user object ──────────────────────
+export function getWebsiteRole(user) {
+  if (!user) return null
+  if (['super_admin', 'ec_admin'].includes(user.role)) return 'super_admin'
+  if (user.role === 'cu_secretary') return 'secretary'
+  if (user.website_role) return user.website_role
+  return 'content_manager'
+}
 
+// ─── Helper: get merged pages from primary + secondary roles ─────────────────
+export function getMergedPages(websiteRole, secondaryRole) {
+  const primary = ROLE_PERMISSIONS[websiteRole]
+  if (!primary) return []
+  if (primary.pages.includes('*')) return ['*']
+  let pages = [...primary.pages]
+  if (secondaryRole && secondaryRole !== websiteRole) {
+    const secondary = ROLE_PERMISSIONS[secondaryRole]
+    if (secondary) {
+      if (secondary.pages.includes('*')) return ['*']
+      pages = [...new Set([...pages, ...secondary.pages])]
+    }
+  }
+  return pages
+}
+
+// ─── Helper: check if a page is accessible ───────────────────────────────────
+export function canAccessPage(websiteRole, page, secondaryRole) {
+  if (!websiteRole) return false
+  const pages = getMergedPages(websiteRole, secondaryRole)
+  if (pages.includes('*')) return true
+  return pages.includes(page)
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
